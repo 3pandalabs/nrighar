@@ -1,40 +1,18 @@
-# nrighar-web
+# NRIGhar
 
-NRIGhar — property management for NRI landlords renting out property in India. Web dashboard + marketing landing page, built with Next.js 16, Tailwind 4, and Supabase.
+Property management for landlords and tenants in India — one repo, whole product.
 
-Part of [3PandaLabs](https://3pandalabs.com). Companion mobile app: [nrighar-app](https://github.com/3pandalabs/nrighar-app).
+Part of [3PandaLabs](https://3pandalabs.com). Live at [nrighar.3pandalabs.com](https://nrighar.3pandalabs.com).
 
-## What it does (MVP)
+## Structure
 
-- **Properties & tenants** — add properties, tenants, and leases (rent, deposit, due day).
-- **Rent tracking** — monthly ledger per lease, mark received, INR plus approximate home-currency view, one-tap WhatsApp rent reminders.
-- **Document vault** — rent agreements, tenant KYC, and property papers in a private Supabase Storage bucket (signed URLs only).
+- **`web/`** — Next.js dashboard + landing page, deployed to Vercel (project Root Directory = `web`).
+- **`app/`** — Expo (React Native) mobile app, built with EAS.
+- **`supabase/`** — shared backend: SQL migrations and Supabase CLI config. One schema serves both clients. Run `supabase` CLI commands from the repo root.
+- **`brand/`** — master icon/logo SVG sources; PNGs are rendered from here into `web/` and `app/` assets.
 
-## Stack
+## Working on it
 
-- Next.js 16 (App Router, `src/`, TypeScript), Tailwind CSS 4
-- Supabase (Postgres + RLS, Auth, Storage) via `@supabase/ssr`
-- Session refresh + route protection in `src/proxy.ts`
-- Deployed on Vercel
+Each client is its own npm project — run `npm install` / dev commands inside `web/` or `app/`, not at the root. CI runs per-folder via path-filtered workflows.
 
-## Local development
-
-```bash
-npm install
-cp .env.example .env.local   # fill in the Supabase project URL + anon key
-npm run dev
-```
-
-## Database
-
-Migrations live in `supabase/migrations/` (schema, private `documents` storage bucket, explicit grants). Apply them to the Supabase project with the Supabase CLI (`supabase db push`) or by pasting into the SQL editor in order.
-
-Note: the project keeps "automatically expose new tables" OFF in the Data API settings — `0003_grants.sql` grants exactly what the RLS policies allow.
-
-## Checks
-
-```bash
-npm run lint
-npm run typecheck
-npm run build
-```
+History note: this repo was merged from the former `nrighar-web` and `nrighar-app` repos (2026-07-18); both full histories are preserved.
