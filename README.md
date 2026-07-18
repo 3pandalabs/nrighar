@@ -2,7 +2,7 @@
 
 NRIGhar mobile app — property management for NRI landlords renting out property in India. Expo (React Native) companion to the [nrighar-web](https://github.com/3pandalabs/nrighar-web) dashboard; both talk to the same Supabase backend.
 
-Part of [3PandA Labs](https://3pandalabs.com).
+Part of [3PandaLabs](https://3pandalabs.com).
 
 ## What it does (MVP)
 
