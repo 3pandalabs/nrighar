@@ -51,6 +51,18 @@ export type RentPayment = {
   notes: string | null;
 };
 
+export type PayLink = {
+  id: string;
+  owner_id: string;
+  lease_id: string;
+  period_year: number;
+  period_month: number;
+  amount_due: number;
+  opened_at: string | null;
+  claimed_paid_at: string | null;
+  created_at: string;
+};
+
 export function formatInr(amount: number): string {
   return `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(amount)}`;
 }
