@@ -29,18 +29,27 @@ export default async function PropertyDetailPage({
   }
 
   const activeLease = (leases ?? []).find((l) => l.status === "active");
+  const pastLeases = (leases ?? []).filter((l) => l.status === "ended");
   const tenantById = new Map((tenants ?? []).map((t) => [t.id, t]));
 
-  const { data: payments } = activeLease
+  const leaseIds = (leases ?? []).map((l) => l.id);
+  const { data: allPayments } = leaseIds.length
     ? await supabase
         .from("rent_payments")
         .select("*")
-        .eq("lease_id", activeLease.id)
+        .in("lease_id", leaseIds)
         .order("period_year", { ascending: false })
         .order("period_month", { ascending: false })
-        .limit(12)
         .returns<RentPayment[]>()
     : { data: [] as RentPayment[] };
+
+  const paymentsByLease = new Map<string, RentPayment[]>();
+  for (const p of allPayments ?? []) {
+    const list = paymentsByLease.get(p.lease_id) ?? [];
+    list.push(p);
+    paymentsByLease.set(p.lease_id, list);
+  }
+  const payments = activeLease ? (paymentsByLease.get(activeLease.id) ?? []).slice(0, 12) : [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -138,6 +147,72 @@ export default async function PropertyDetailPage({
           </div>
         )}
       </section>
+
+      {pastLeases.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            Past leases
+          </h2>
+          <ul className="flex flex-col gap-3">
+            {pastLeases.map((pl) => {
+              const plPayments = paymentsByLease.get(pl.id) ?? [];
+              const collected = plPayments.reduce((sum, p) => sum + Number(p.amount_paid ?? 0), 0);
+              return (
+                <li
+                  key={pl.id}
+                  className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  <details>
+                    <summary className="cursor-pointer text-sm">
+                      <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                        {tenantById.get(pl.tenant_id)?.full_name ?? "Unknown tenant"}
+                      </span>{" "}
+                      <span className="text-zinc-500">
+                        · {pl.start_date} → {pl.end_date ?? "?"} · {formatInr(Number(pl.rent_amount))}
+                        /month · {plPayments.length} payment{plPayments.length === 1 ? "" : "s"}{" "}
+                        recorded ({formatInr(collected)} collected)
+                      </span>
+                    </summary>
+                    {plPayments.length > 0 ? (
+                      <ul className="mt-3 divide-y divide-zinc-200 border-t border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+                        {plPayments.map((p) => (
+                          <li
+                            key={p.id}
+                            className="flex items-center justify-between py-2 text-sm"
+                          >
+                            <span>
+                              {new Date(p.period_year, p.period_month - 1).toLocaleString("en-US", {
+                                month: "long",
+                                year: "numeric",
+                              })}
+                            </span>
+                            <span className="flex items-center gap-3">
+                              <span>{formatInr(Number(p.amount_paid ?? 0))}</span>
+                              <span
+                                className={
+                                  p.status === "paid"
+                                    ? "text-emerald-600 dark:text-emerald-500"
+                                    : "text-amber-600"
+                                }
+                              >
+                                {p.status}
+                              </span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-3 border-t border-zinc-200 pt-3 text-sm text-zinc-500 dark:border-zinc-800">
+                        No payments were recorded for this lease.
+                      </p>
+                    )}
+                  </details>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {activeLease && (
         <section>

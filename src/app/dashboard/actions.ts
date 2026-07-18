@@ -224,6 +224,35 @@ export async function createWhatsAppReminderUrl(input: {
   return `https://wa.me/${withCountry}?text=${encodeURIComponent(message)}`;
 }
 
+export async function createIntakeLink(formData: FormData) {
+  const { supabase, user } = await requireUser();
+
+  const propertyId = String(formData.get("property_id") ?? "");
+  const { error } = await supabase.from("intake_links").insert({
+    owner_id: user.id,
+    property_id: propertyId || null,
+  });
+
+  if (error) {
+    throw new Error(`Could not create invite link: ${error.message}`);
+  }
+
+  revalidatePath("/dashboard/tenants");
+}
+
+export async function deleteIntakeLink(formData: FormData) {
+  const { supabase } = await requireUser();
+
+  const id = String(formData.get("id") ?? "");
+  const { error } = await supabase.from("intake_links").delete().eq("id", id);
+
+  if (error) {
+    throw new Error(`Could not delete invite link: ${error.message}`);
+  }
+
+  revalidatePath("/dashboard/tenants");
+}
+
 export async function deleteDocument(formData: FormData) {
   const { supabase } = await requireUser();
 

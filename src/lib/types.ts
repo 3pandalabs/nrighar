@@ -72,6 +72,17 @@ export type RentPayment = {
   notes: string | null;
 };
 
+export type IntakeLink = {
+  id: string;
+  owner_id: string;
+  property_id: string | null;
+  status: "pending" | "submitted";
+  tenant_id: string | null;
+  created_at: string;
+  submitted_at: string | null;
+  expires_at: string;
+};
+
 export type DocumentRow = {
   id: string;
   owner_id: string;
