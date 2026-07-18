@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "NRIGhar",
+    "slug": "nrighar-app",
+    "owner": "3pandalabs",
+    "scheme": "nrighar",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.threepanda.nrighar"
+    },
+    "android": {
+      "package": "com.threepanda.nrighar",
+      "adaptiveIcon": {
+        "backgroundColor": "#059669",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0f2db038-4410-4d08-95b3-af143e4ef01d"
+      }
+    }
+  }
+}
