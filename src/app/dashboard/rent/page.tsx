@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatApprox, formatInr, getRateFromInr } from "@/lib/currency";
 import type { Lease, PayLink, Profile, Property, RentPayment, Tenant } from "@/lib/types";
-import { recordPayment, sendWhatsAppReminder } from "../actions";
+import { recordPayment } from "../actions";
+import { WhatsAppPayButton } from "./whatsapp-button";
 
 export default async function RentPage() {
   const supabase = await createClient();
@@ -189,26 +190,17 @@ export default async function RentPage() {
                     </form>
 
                     {tenant?.phone && (
-                      <form action={sendWhatsAppReminder}>
-                        <input type="hidden" name="lease_id" value={lease.id} />
-                        <input type="hidden" name="period_year" value={year} />
-                        <input type="hidden" name="period_month" value={month} />
-                        <input type="hidden" name="amount" value={rent} />
-                        <input type="hidden" name="phone" value={tenant.phone} />
-                        <input type="hidden" name="tenant_name" value={tenant.full_name} />
-                        <input
-                          type="hidden"
-                          name="property_nickname"
-                          value={property?.nickname ?? "the property"}
-                        />
-                        <input type="hidden" name="month_label" value={monthLabel} />
-                        <button
-                          type="submit"
-                          className="rounded-full border border-emerald-600 px-5 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-500 dark:hover:bg-emerald-950"
-                        >
-                          {profile?.upi_vpa ? "WhatsApp pay link" : "WhatsApp reminder"}
-                        </button>
-                      </form>
+                      <WhatsAppPayButton
+                        label={profile?.upi_vpa ? "WhatsApp pay link" : "WhatsApp reminder"}
+                        leaseId={lease.id}
+                        periodYear={year}
+                        periodMonth={month}
+                        amount={rent}
+                        phone={tenant.phone}
+                        tenantName={tenant.full_name}
+                        propertyNickname={property?.nickname ?? "the property"}
+                        monthLabel={monthLabel}
+                      />
                     )}
                   </div>
                 )}

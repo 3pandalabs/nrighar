@@ -160,17 +160,20 @@ export async function saveProfile(formData: FormData) {
   redirect("/dashboard/settings?saved=1");
 }
 
-export async function sendWhatsAppReminder(formData: FormData) {
+export async function createWhatsAppReminderUrl(input: {
+  leaseId: string;
+  periodYear: number;
+  periodMonth: number;
+  amount: number;
+  phone: string;
+  tenantName: string;
+  propertyNickname: string;
+  monthLabel: string;
+}): Promise<string> {
   const { supabase, user } = await requireUser();
 
-  const leaseId = String(formData.get("lease_id") ?? "");
-  const periodYear = Number(formData.get("period_year") ?? 0);
-  const periodMonth = Number(formData.get("period_month") ?? 0);
-  const amount = Number(formData.get("amount") ?? 0);
-  const phone = String(formData.get("phone") ?? "");
-  const tenantName = String(formData.get("tenant_name") ?? "");
-  const propertyNickname = String(formData.get("property_nickname") ?? "");
-  const monthLabel = String(formData.get("month_label") ?? "");
+  const { leaseId, periodYear, periodMonth, amount, phone, tenantName, propertyNickname, monthLabel } =
+    input;
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -218,7 +221,7 @@ export async function sendWhatsAppReminder(formData: FormData) {
   const digits = phone.replace(/\D/g, "");
   const withCountry = digits.length === 10 ? `91${digits}` : digits;
 
-  redirect(`https://wa.me/${withCountry}?text=${encodeURIComponent(message)}`);
+  return `https://wa.me/${withCountry}?text=${encodeURIComponent(message)}`;
 }
 
 export async function deleteDocument(formData: FormData) {
