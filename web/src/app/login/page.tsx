@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { GradientBackdrop } from "@/components/GradientBackdrop";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -59,14 +60,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 px-6 dark:bg-black">
+    <div className="flex min-h-screen flex-col items-center justify-center px-6">
+      <GradientBackdrop />
       <Link href="/" className="mb-8 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
         NRIGhar
       </Link>
 
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-950"
+        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white/90 p-8 shadow-xl shadow-zinc-900/5 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/90"
       >
         <h1 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
           {mode === "sign-in" ? "Sign in" : "Create an account"}

@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScreenBackground } from "../../components/ScreenBackground";
 import { useAuth } from "../../hooks/useAuth";
 import { supabase } from "../../lib/supabase";
 import { formatInr, type Lease, type RentPayment } from "../../lib/types";
@@ -55,28 +56,30 @@ export default function OverviewScreen() {
   const monthLabel = new Date().toLocaleString("en-US", { month: "long", year: "numeric" });
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
-    >
-      <Text style={styles.greeting}>Namaste 🙏</Text>
-      <Text style={styles.subtitle}>{monthLabel} at a glance</Text>
+    <ScreenBackground>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+      >
+        <Text style={styles.greeting}>Namaste 🙏</Text>
+        <Text style={styles.subtitle}>{monthLabel} at a glance</Text>
 
-      <View style={styles.cardRow}>
-        <StatCard label="Properties" value={String(propertyCount)} />
-        <StatCard label="Awaiting rent" value={String(pendingCount)} />
-      </View>
-      <View style={styles.cardRow}>
-        <StatCard label="Expected" value={formatInr(expected)} />
-        <StatCard label="Collected" value={formatInr(collected)} />
-      </View>
+        <View style={styles.cardRow}>
+          <StatCard label="Properties" value={String(propertyCount)} />
+          <StatCard label="Awaiting rent" value={String(pendingCount)} />
+        </View>
+        <View style={styles.cardRow}>
+          <StatCard label="Expected" value={formatInr(expected)} />
+          <StatCard label="Collected" value={formatInr(collected)} />
+        </View>
 
-      <Text style={styles.email}>{session?.user.email}</Text>
-      <Pressable style={styles.signOutButton} onPress={signOut}>
-        <Text style={styles.signOutText}>Sign out</Text>
-      </Pressable>
-    </ScrollView>
+        <Text style={styles.email}>{session?.user.email}</Text>
+        <Pressable style={styles.signOutButton} onPress={signOut}>
+          <Text style={styles.signOutText}>Sign out</Text>
+        </Pressable>
+      </ScrollView>
+    </ScreenBackground>
   );
 }
 
@@ -92,10 +95,10 @@ function StatCard({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fafafa",
   },
   content: {
     padding: 20,
+    paddingBottom: 120,
   },
   greeting: {
     fontSize: 26,

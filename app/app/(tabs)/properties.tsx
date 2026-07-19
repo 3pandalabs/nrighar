@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ScreenBackground } from "../../components/ScreenBackground";
 import { supabase } from "../../lib/supabase";
 import type { Lease, Property, Tenant } from "../../lib/types";
 
@@ -37,43 +38,45 @@ export default function PropertiesScreen() {
   const tenantById = new Map(tenants.map((t) => [t.id, t]));
 
   return (
-    <FlatList
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      data={properties}
-      keyExtractor={(item) => item.id}
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
-      ListEmptyComponent={
-        <Text style={styles.empty}>
-          No properties yet — add them from the NRIGhar web dashboard.
-        </Text>
-      }
-      renderItem={({ item }) => {
-        const lease = leaseByProperty.get(item.id);
-        const tenant = lease ? tenantById.get(lease.tenant_id) : undefined;
-        return (
-          <View style={styles.card}>
-            <Text style={styles.nickname}>{item.nickname}</Text>
-            <Text style={styles.address}>
-              {item.address_line1}, {item.city}, {item.state} {item.pincode}
-            </Text>
-            <Text style={lease ? styles.rented : styles.vacant}>
-              {lease ? `Rented to ${tenant?.full_name ?? "tenant"}` : "Vacant"}
-            </Text>
-          </View>
-        );
-      }}
-    />
+    <ScreenBackground>
+      <FlatList
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        data={properties}
+        keyExtractor={(item) => item.id}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            No properties yet — add them from the NRIGhar web dashboard.
+          </Text>
+        }
+        renderItem={({ item }) => {
+          const lease = leaseByProperty.get(item.id);
+          const tenant = lease ? tenantById.get(lease.tenant_id) : undefined;
+          return (
+            <View style={styles.card}>
+              <Text style={styles.nickname}>{item.nickname}</Text>
+              <Text style={styles.address}>
+                {item.address_line1}, {item.city}, {item.state} {item.pincode}
+              </Text>
+              <Text style={lease ? styles.rented : styles.vacant}>
+                {lease ? `Rented to ${tenant?.full_name ?? "tenant"}` : "Vacant"}
+              </Text>
+            </View>
+          );
+        }}
+      />
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fafafa",
   },
   content: {
     padding: 20,
+    paddingBottom: 120,
     gap: 12,
   },
   empty: {

@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { GradientBackdrop } from "@/components/GradientBackdrop";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
+    <div className="flex min-h-screen flex-col">
+      <GradientBackdrop />
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-6">
         <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">NRIGhar</span>
         <Link

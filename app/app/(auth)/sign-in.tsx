@@ -7,7 +7,9 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  View,
 } from "react-native";
+import { ScreenBackground } from "../../components/ScreenBackground";
 import { useAuth } from "../../hooks/useAuth";
 
 export default function SignInScreen() {
@@ -31,52 +33,61 @@ export default function SignInScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <Text style={styles.title}>NRIGhar</Text>
-      <Text style={styles.subtitle}>
-        {mode === "sign-in" ? "Sign in to your account" : "Create an account"}
-      </Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      {error && <Text style={styles.error}>{error}</Text>}
-
-      <Pressable style={styles.button} onPress={handleSubmit} disabled={isSubmitting}>
-        {isSubmitting ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>{mode === "sign-in" ? "Sign In" : "Sign Up"}</Text>
-        )}
-      </Pressable>
-
-      <Pressable
-        onPress={() => {
-          setError(null);
-          setMode(mode === "sign-in" ? "sign-up" : "sign-in");
-        }}
+    <ScreenBackground>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Text style={styles.switchModeText}>
-          {mode === "sign-in" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+        <View style={styles.logoBadge}>
+          <Text style={styles.logoGlyph}>🏠</Text>
+        </View>
+        <Text style={styles.title}>NRIGhar</Text>
+        <Text style={styles.subtitle}>
+          {mode === "sign-in" ? "Sign in to your account" : "Create an account"}
         </Text>
-      </Pressable>
-    </KeyboardAvoidingView>
+
+        <View style={styles.card}>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#9ca3af"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#9ca3af"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+
+          {error && <Text style={styles.error}>{error}</Text>}
+
+          <Pressable style={styles.button} onPress={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>{mode === "sign-in" ? "Sign In" : "Sign Up"}</Text>
+            )}
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              setError(null);
+              setMode(mode === "sign-in" ? "sign-up" : "sign-in");
+            }}
+          >
+            <Text style={styles.switchModeText}>
+              {mode === "sign-in" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+            </Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </ScreenBackground>
   );
 }
 
@@ -85,13 +96,31 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
-    backgroundColor: "#fff",
+  },
+  logoBadge: {
+    alignSelf: "center",
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: "#059669",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    shadowColor: "#059669",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  logoGlyph: {
+    fontSize: 34,
   },
   title: {
     fontSize: 32,
     fontWeight: "700",
     textAlign: "center",
     marginBottom: 8,
+    color: "#111827",
   },
   subtitle: {
     fontSize: 16,
@@ -99,14 +128,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 32,
   },
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
     marginBottom: 12,
+    backgroundColor: "#fafafa",
   },
   error: {
     color: "#dc2626",
@@ -114,8 +156,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   button: {
-    backgroundColor: "#111827",
-    borderRadius: 8,
+    backgroundColor: "#059669",
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
@@ -128,6 +170,7 @@ const styles = StyleSheet.create({
   switchModeText: {
     textAlign: "center",
     marginTop: 20,
-    color: "#2563eb",
+    color: "#059669",
+    fontWeight: "600",
   },
 });

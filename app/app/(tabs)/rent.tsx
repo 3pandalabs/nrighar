@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { Alert, FlatList, Linking, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ScreenBackground } from "../../components/ScreenBackground";
 import { useAuth } from "../../hooks/useAuth";
 import { supabase } from "../../lib/supabase";
 import { SITE_URL } from "../../lib/constants";
@@ -117,6 +118,7 @@ export default function RentScreen() {
   const payLinkByLease = new Map(payLinks.map((p) => [p.lease_id, p]));
 
   return (
+    <ScreenBackground>
     <FlatList
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -197,16 +199,17 @@ export default function RentScreen() {
         );
       }}
     />
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fafafa",
   },
   content: {
     padding: 20,
+    paddingBottom: 120,
     gap: 12,
   },
   month: {

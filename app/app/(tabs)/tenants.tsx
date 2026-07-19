@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { ScreenBackground } from "../../components/ScreenBackground";
 import { useAuth } from "../../hooks/useAuth";
 import { supabase } from "../../lib/supabase";
 import { SITE_URL } from "../../lib/constants";
@@ -72,11 +73,12 @@ export default function TenantsScreen() {
   );
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
-    >
+    <ScreenBackground>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+      >
       <Pressable style={styles.inviteButton} disabled={isInviting} onPress={createInvite}>
         <Text style={styles.inviteButtonText}>
           {isInviting ? "..." : "+ Invite a tenant (share link)"}
@@ -126,17 +128,18 @@ export default function TenantsScreen() {
           </Pressable>
         ))}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fafafa",
   },
   content: {
     padding: 20,
+    paddingBottom: 120,
     gap: 16,
   },
   inviteButton: {
