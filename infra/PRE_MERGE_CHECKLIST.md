@@ -32,9 +32,10 @@
 
 → `infra/coolify-setup.md`
 
-## 4. Run the schema migration against the new Postgres
+## 4. Run the schema migration against the new Postgres ✅ DONE 2026-07-20
 
-- [ ] From `api/`, run the Drizzle migration (`npm run db:migrate` or equivalent — check `api/package.json`) against the new `DATABASE_URL` to create all 13 tables before any data lands
+- [x] Ran the compiled `dist/db/migrate.js` directly inside the already-deployed `nrighar-api` container (`docker exec`) — no SSH tunnel needed, it already has the correct `DATABASE_URL`. Note: `npm run db:migrate` (via `tsx`) won't work against the production image itself since `tsx`/`drizzle-kit` are devDependencies, omitted by `npm ci --omit=dev` in the runtime stage — use the compiled JS instead.
+- [x] Verified via `\dt` in psql: all 13 tables present (documents, intake_links, leases, pay_links, profile_shares, profiles, properties, rent_payments, sessions, tenant_documents, tenant_profiles, tenants, users)
 
 ## 5. Migrate the data
 
