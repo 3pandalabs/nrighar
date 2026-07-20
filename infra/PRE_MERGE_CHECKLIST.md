@@ -37,12 +37,12 @@
 - [x] Ran the compiled `dist/db/migrate.js` directly inside the already-deployed `nrighar-api` container (`docker exec`) — no SSH tunnel needed, it already has the correct `DATABASE_URL`. Note: `npm run db:migrate` (via `tsx`) won't work against the production image itself since `tsx`/`drizzle-kit` are devDependencies, omitted by `npm ci --omit=dev` in the runtime stage — use the compiled JS instead.
 - [x] Verified via `\dt` in psql: all 13 tables present (documents, intake_links, leases, pay_links, profile_shares, profiles, properties, rent_payments, sessions, tenant_documents, tenant_profiles, tenants, users)
 
-## 5. Migrate the data
+## 5. Migrate the data ✅ DONE 2026-07-20
 
-- [ ] Fill in `scripts/.env.example` → `.env` with real Supabase + new-Postgres + R2 credentials
-- [ ] Dry run first (default, no `--confirm`) — inspect the row-count report
-- [ ] Run for real with `--confirm` (and `--truncate-first` only if re-running after a failed attempt)
-- [ ] Spot-check: a handful of documents open correctly via `POST /storage/presign-download` against the new API; one full login → dashboard → tenant-doc-view smoke test
+- [x] Filled in `scripts/.env` with real Supabase + new-Postgres (via SSH tunnel, `localhost:5433`) + R2 credentials
+- [x] Dry run first — 12 tables, small dataset (3 users, 1 property, 3 leases, 3 pay_links, etc.), 3 Storage objects found
+- [x] Ran for real with `--confirm` — all 12 tables migrated, all row counts matched exactly (verified independently via direct `psql` query, not just the script's own report); all 3 Storage objects copied to R2, storage_path key convention confirmed intact (`<user_id>/...`, including the intake-path variant)
+- [ ] Full login → dashboard → tenant-doc-view smoke test against the live API — still pending (needs web deployed to actually click through, or a direct API-level test with a real user's credentials)
 
 → `scripts/README.md`
 
