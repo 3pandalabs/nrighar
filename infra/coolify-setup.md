@@ -45,7 +45,7 @@ Same project → **New Resource → Application** → **Public Repository** (or 
 - **Base Directory / Build Context:** `api`
 - **Dockerfile location:** `Dockerfile` (relative to Base Directory, which is already `api` — do NOT repeat it here as `api/Dockerfile`, that resolves to `api/api/Dockerfile` and fails the build with a "no such file or directory" error; hit this exact bug 2026-07-20)
 
-**Domains:** set `api.nrighar.3pandalabs.com`. Coolify's Traefik will request a Let's Encrypt certificate automatically the first time it's deployed — this requires the DNS A record (see `infra/README.md` step 6) to already resolve to this box, or the ACME HTTP-01 challenge fails. Do DNS first, then deploy.
+**Domains:** set **`https://api.nrighar.3pandalabs.com`** — include the `https://` scheme. Entering just the bare hostname (`api.nrighar.3pandalabs.com`, no scheme) generates a broken Traefik rule (`Host(\`\`) && PathPrefix(\`api.nrighar.3pandalabs.com\`)` — domain lands in the path matcher with an empty Host), so no cert ever gets requested and Traefik falls back to serving its default self-signed cert. Hit this exact bug 2026-07-20; confirmed via `docker logs coolify-proxy`. Coolify's Traefik will request a Let's Encrypt certificate automatically the first time it's deployed with the domain entered correctly — this requires the DNS A record (see `infra/README.md` step 6) to already resolve to this box, or the ACME HTTP-01 challenge fails. Do DNS first, then deploy.
 
 **Ports Exposes (General page):** Coolify defaults new resources to `3000` — change this to **`8080`** to match the Dockerfile's `EXPOSE 8080` / the `PORT` env var below. Mismatched here causes "bad gateway"/no-server errors even though the build succeeds (hit this 2026-07-20).
 
