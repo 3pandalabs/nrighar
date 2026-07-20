@@ -49,7 +49,7 @@ In the Coolify dashboard: **New Resource → Database → PostgreSQL 17**.
 
 ## 5. Add the `nrighar-api` application resource
 
-**New Resource → Application → Public Repository / Deploy from Git**, pointing at the `nrighar` repo, build context `api/`, using `api/Dockerfile`.
+**New Resource → Application → Public Repository / Deploy from Git**, pointing at the `nrighar` repo, Base Directory `api`, Dockerfile Location `Dockerfile` (relative to Base Directory — not `api/Dockerfile`, which doubles the path and fails the build; see `coolify-setup.md`).
 
 Set the domain to `api.nrighar.3pandalabs.com` in the resource's "Domains" field — Coolify's Traefik will automatically request a Let's Encrypt certificate for it once DNS resolves (step 7 below must happen first, or the ACME challenge will fail).
 

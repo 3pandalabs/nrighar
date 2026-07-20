@@ -43,7 +43,7 @@ Same project → **New Resource → Application** → **Public Repository** (or 
 - Branch: `main`
 - **Build Pack:** Dockerfile
 - **Base Directory / Build Context:** `api`
-- **Dockerfile location:** `api/Dockerfile`
+- **Dockerfile location:** `Dockerfile` (relative to Base Directory, which is already `api` — do NOT repeat it here as `api/Dockerfile`, that resolves to `api/api/Dockerfile` and fails the build with a "no such file or directory" error; hit this exact bug 2026-07-20)
 
 **Domains:** set `api.nrighar.3pandalabs.com`. Coolify's Traefik will request a Let's Encrypt certificate automatically the first time it's deployed — this requires the DNS A record (see `infra/README.md` step 6) to already resolve to this box, or the ACME HTTP-01 challenge fails. Do DNS first, then deploy.
 
