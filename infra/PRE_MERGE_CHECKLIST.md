@@ -14,7 +14,7 @@
 
 - [ ] Create `nrighar-documents` bucket (private)
 - [ ] Create `nrighar-backups` bucket (private)
-- [ ] Create a scoped R2 API token (one or two, your call — see the doc), save Account ID / Access Key ID / Secret Access Key
+- [ ] Create a single scoped R2 API token covering both buckets (decided 2026-07-20), save Account ID / Access Key ID / Secret Access Key
 - [ ] Verify the token/bucket/endpoint with the `aws s3 ls --endpoint-url ...` check in the doc
 
 → `infra/r2-setup.md`

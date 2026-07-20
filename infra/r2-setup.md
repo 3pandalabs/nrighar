@@ -15,7 +15,7 @@ Cloudflare dashboard → **R2** → **Create bucket**.
 
 **R2 → Manage R2 API Tokens → Create API Token.**
 
-Create **one token scoped to both buckets** (or two separate tokens if you want backup credentials fully isolated from the API's document-serving credentials — reasonable given the API is the more internet-facing surface; your call, document whichever you pick in `tech-stack.md`).
+DECIDED (2026-07-20): **one token scoped to both buckets** — simpler to manage, acceptable tradeoff for this app's scale over splitting backup credentials from document-serving credentials.
 
 - Permissions: **Object Read & Write**
 - Bucket scope: restrict to the specific bucket(s), not "all buckets"
@@ -38,7 +38,7 @@ R2_ENDPOINT=https://<account id>.r2.cloudflarestorage.com
 
 These feed `nrighar-api`'s Coolify environment variables (`coolify-setup.md` step 4) and the data migration script's env vars (`scripts/README.md`) — the migration script uses the same `nrighar-documents` bucket/credentials as the destination for copied files.
 
-The backup bucket credentials (if using a separate token) go into Coolify's Postgres backup configuration only (`coolify-setup.md` step 3), not into `nrighar-api`'s env — the API never needs to touch the backup bucket.
+The single token's credentials go into both Coolify's Postgres backup configuration (`coolify-setup.md` step 3) and `nrighar-api`'s env — same Access Key ID/Secret for both, only the bucket name differs (`nrighar-backups` vs `nrighar-documents`).
 
 ## 4. Verify
 
