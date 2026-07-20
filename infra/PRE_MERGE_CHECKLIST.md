@@ -2,11 +2,11 @@
 
 **Do not merge `migrate/postgres-coolify-hetzner` into `main` until every item below is checked.** Vercel auto-deploys `main`, and `web/` on this branch no longer talks to Supabase at all — merging early breaks the live site at nrighar.3pandalabs.com. Work through this top to bottom; each section links to the doc with the actual commands.
 
-## 1. Provision the Hetzner server
+## 1. Provision the Hetzner server ✅ DONE 2026-07-20
 
-- [ ] `hcloud` CLI installed and authenticated (`hcloud context create nrighar`)
-- [ ] Fill in `MY_IP_CIDR` (and SSH key path, if not the default) in `infra/hetzner/provision-server.sh`, then run it
-- [ ] Note the server's public IPv4 from the script's output
+- [x] `hcloud` CLI installed and authenticated (`hcloud context create nrighar`)
+- [x] Filled in `MY_IP_CIDR` and ran `infra/hetzner/provision-server.sh` (corrected two wrong assumptions while running: server type `cx22` doesn't exist in Singapore, closest available is `cpx22`; location code is `sin`, not `sin1`)
+- [x] Server public IPv4: **`5.223.94.207`** (SSH: `ssh root@5.223.94.207`)
 
 → `infra/README.md` §1–2, `infra/hetzner/provision-server.sh`
 

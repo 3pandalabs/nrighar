@@ -9,8 +9,8 @@ Coolify's built-in Traefik does TLS termination and routing. Deliberately no loa
 ## 1. Provision the server
 
 - **Image:** Ubuntu 24.04 LTS (Coolify's officially supported OS).
-- **Server type:** `cx22` (2 vCPU, 4GB RAM, 40GB disk) to start — comfortably above Coolify's stated 2GB minimum, giving headroom for Postgres + the API + Coolify itself. Resize up later if it feels tight under real load; don't over-provision before you have real traffic to size against.
-- **Location:** `sin1` (Singapore) is the closest Hetzner region to India-based landlords/tenants; pick a European or US region instead if your actual user latency profile differs. Verify the current region list at hetzner.com/cloud — Hetzner adds/changes regions periodically.
+- **Server type:** `cpx22` (2 vCPU, 4GB RAM, 80GB disk, shared AMD) to start — comfortably above Coolify's stated 2GB minimum, giving headroom for Postgres + the API + Coolify itself. Resize up later if it feels tight under real load; don't over-provision before you have real traffic to size against. (The Intel "cx" line, e.g. `cx23`, is not available in the Singapore region — only in the European ones — verified via `hcloud server-type list`.)
+- **Location:** `sin` (Singapore) is the closest Hetzner region to India-based landlords/tenants; pick a European or US region instead if your actual user latency profile differs. Verify the current region list with `hcloud location list` — Hetzner adds/changes regions periodically.
 - **SSH key:** use or register a dedicated key for this box; don't reuse a key you don't control the private half of.
 - **Public IPv4:** included free with every server and stays attached for the server's lifetime — no separate "Elastic IP" step or cost, unlike AWS.
 

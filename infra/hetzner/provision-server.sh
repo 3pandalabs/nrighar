@@ -20,20 +20,27 @@
 set -euo pipefail
 
 # ---- Fill these in before running ------------------------------------------
-LOCATION="sin1"                        # sin1 = Singapore, closest Hetzner region to India-based
+LOCATION="sin"                         # sin = Singapore, closest Hetzner region to India-based
                                         # landlords/tenants; fsn1/nbg1/hel1 (Germany/Finland) or
                                         # ash/hil (US) are the alternatives if latency there matters
-                                        # more — verify current region list at hetzner.com/cloud before
-                                        # committing, Hetzner adds/changes regions occasionally.
-SERVER_TYPE="cx22"                     # 2 vCPU / 4GB RAM / 40GB disk — Coolify's stated minimum is
-                                        # 2GB, this gives headroom for Postgres + the API + Coolify
-                                        # itself without over-provisioning; resize later if needed.
+                                        # more — verified via `hcloud location list` (single-word codes,
+                                        # not "sin1" — that was a wrong assumption caught while running
+                                        # this the first time).
+SERVER_TYPE="cpx22"                    # 2 vCPU / 4GB RAM / 80GB disk (shared AMD) — Coolify's stated
+                                        # minimum is 2GB, this gives headroom for Postgres + the API +
+                                        # Coolify itself without over-provisioning; resize later if
+                                        # needed. NOTE: the "cx" Intel line (e.g. cx22/cx23) is NOT
+                                        # available in sin1/Singapore as of 2026-07 — only fsn1/nbg1/hel1
+                                        # (Europe) — verified via `hcloud server-type list`. cpx22 is the
+                                        # closest match actually available in sin1.
 IMAGE="ubuntu-24.04"
 SERVER_NAME="nrighar-coolify"
 FIREWALL_NAME="nrighar-coolify-fw"
 SSH_KEY_NAME="nrighar-coolify-key"     # name to register/reuse in the Hetzner project
 SSH_PUBLIC_KEY_PATH="$HOME/.ssh/id_ed25519.pub"  # your local public key — CHANGE if it lives elsewhere
-MY_IP_CIDR="CHANGE_ME/32"              # your current public IP, e.g. `curl -s ifconfig.me`
+MY_IP_CIDR="69.248.0.248/32"           # your current public IP as of 2026-07-20 (curl -s -4 ifconfig.me) —
+                                        # if your ISP gives you a dynamic IP, this may drift; re-check with
+                                        # the same command if SSH access is ever refused later
 # -----------------------------------------------------------------------------
 
 if [[ "$MY_IP_CIDR" == "CHANGE_ME/32" ]]; then
