@@ -22,13 +22,13 @@
 ## 3. Install Coolify + deploy resources
 
 - [x] SSH into the Hetzner server (`ssh root@5.223.94.207`), ran the Coolify installer (v4.1.2) — DONE 2026-07-20
-- [ ] Open `http://5.223.94.207:8000` immediately, create the admin account (must be done by Anil/Prachi directly — not something to delegate)
-- [ ] Add the **Postgres 17** database resource, copy its generated password / internal connection string
-- [ ] Configure scheduled Postgres backups pointing at the `nrighar-backups` R2 bucket, confirm a manual "Backup now" actually lands an object
-- [ ] Add the **`nrighar-api`** application resource (build context `api/`, Dockerfile `api/Dockerfile`), set env vars: `DATABASE_URL`, `JWT_SECRET` (fresh, `openssl rand -base64 48` — never reuse anything Supabase-related), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET=nrighar-documents`, `R2_ENDPOINT`, `PORT`
-- [ ] Add the DNS A record: `api.nrighar.3pandalabs.com` → the server's public IPv4, **DNS-only (grey cloud)** on Cloudflare
-- [ ] Deploy `nrighar-api`, confirm Coolify's Traefik issued a valid Let's Encrypt cert and `https://api.nrighar.3pandalabs.com/health` returns `200`
-- [ ] Confirm port 5432 is NOT reachable from the public internet (`nc -zv <public-ip> 5432` should fail from another machine)
+- [x] Opened `http://5.223.94.207:8000`, admin account created
+- [x] Added the **Postgres 17** database resource, connection string obtained (password regenerated after being shared once — see note above)
+- [ ] Configure scheduled Postgres backups pointing at the `nrighar-backups` R2 bucket, confirm a manual "Backup now" actually lands an object — STILL PENDING, not yet done
+- [x] Added the **`nrighar-api`** application resource (Base Directory `api`, Dockerfile Location `Dockerfile` — NOT `api/Dockerfile`, that doubles the path), all 9 env vars set, Ports Exposes fixed from Coolify's `3000` default to `8080`
+- [x] Added the DNS A record: `api.nrighar.3pandalabs.com` → `5.223.94.207`, DNS-only (grey cloud) on Cloudflare
+- [x] Deployed `nrighar-api` — hit and fixed a broken Traefik rule (Domains field needs the literal FQDN, see coolify-setup.md history); confirmed valid Let's Encrypt cert (issuer Let's Encrypt, expires 2026-10-18) and `https://api.nrighar.3pandalabs.com/health` returns `200 {"ok":true}`
+- [x] Confirmed port 5432 is NOT reachable from the public internet (connection timeout from an external machine)
 
 → `infra/coolify-setup.md`
 
