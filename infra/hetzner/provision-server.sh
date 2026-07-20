@@ -76,7 +76,13 @@ else
     --source-ips 0.0.0.0/0 --source-ips ::/0 --description "http-acme-challenge"
   hcloud firewall add-rule "$FIREWALL_NAME" --direction in --protocol tcp --port 443 \
     --source-ips 0.0.0.0/0 --source-ips ::/0 --description "https-traefik"
-  echo "Rules added: 22 from $MY_IP_CIDR, 80/443 from anywhere. Port 5432 intentionally NOT opened."
+  hcloud firewall add-rule "$FIREWALL_NAME" --direction in --protocol tcp --port 8000 \
+    --source-ips "$MY_IP_CIDR" --description "coolify-dashboard-admin-only"
+  echo "Rules added: 22+8000 from $MY_IP_CIDR, 80/443 from anywhere. Port 5432 intentionally NOT opened."
+  echo "NOTE: port 8000 is Coolify's own dashboard, unauthenticated until you create the first admin"
+  echo "account — restricted to your IP for that reason, same as SSH. This was missed on the first"
+  echo "pass (caught 2026-07-20 when the dashboard was unreachable) and added after the fact via"
+  echo "'hcloud firewall add-rule' directly — now baked into a fresh provision."
 fi
 
 echo "== Creating server =="

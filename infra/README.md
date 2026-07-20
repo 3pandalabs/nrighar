@@ -24,6 +24,7 @@ Open **only**:
 | 22 (SSH) | your IP only (`/32`) | admin access — never `0.0.0.0/0` |
 | 80 (HTTP) | `0.0.0.0/0` | Let's Encrypt HTTP-01 challenge + redirect to HTTPS |
 | 443 (HTTPS) | `0.0.0.0/0` | Traefik-terminated traffic to `api.nrighar.3pandalabs.com` |
+| 8000 (Coolify dashboard) | your IP only (`/32`) | Coolify's own admin UI, unauthenticated until the first account is created — same reasoning as SSH. Missed on the initial pass (dashboard was unreachable until this was added); `provision-server.sh` now opens it by default. |
 
 **Do not open 5432 (Postgres) to the internet, ever.** The whole reason to self-host is to control this database — putting it on the public internet defeats that and is the single most common way self-hosted Postgres boxes get compromised. `nrighar-api` reaches Postgres over Coolify's internal Docker network (both containers on the same Docker bridge network Coolify creates), never through the public IP. If you ever need direct DB access for debugging, use an SSH tunnel (`ssh -L 5432:localhost:5432 root@<ip>`) rather than opening the port.
 
