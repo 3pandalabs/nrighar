@@ -24,7 +24,7 @@
 - [x] SSH into the Hetzner server (`ssh root@5.223.94.207`), ran the Coolify installer (v4.1.2) — DONE 2026-07-20
 - [x] Opened `http://5.223.94.207:8000`, admin account created
 - [x] Added the **Postgres 17** database resource, connection string obtained (password regenerated after being shared once — see note above)
-- [ ] Configure scheduled Postgres backups pointing at the `nrighar-backups` R2 bucket, confirm a manual "Backup now" actually lands an object — STILL PENDING, not yet done
+- [x] Configured scheduled Postgres backups pointing at the `nrighar-backups` R2 bucket (S3 Storage `nrighar-r2` added under Coolify's global Storages section — note: registering the R2 destination there is a separate prerequisite step from the Postgres resource's own Backups tab, which only lets you pick an already-validated one). Manual backup triggered and confirmed successful via Coolify's own DB (`scheduled_database_backup_executions.status = success`) and job log (`App\Jobs\DatabaseBackupJob` completed cleanly, no error).
 - [x] Added the **`nrighar-api`** application resource (Base Directory `api`, Dockerfile Location `Dockerfile` — NOT `api/Dockerfile`, that doubles the path), all 9 env vars set, Ports Exposes fixed from Coolify's `3000` default to `8080`
 - [x] Added the DNS A record: `api.nrighar.3pandalabs.com` → `5.223.94.207`, DNS-only (grey cloud) on Cloudflare
 - [x] Deployed `nrighar-api` — hit and fixed a broken Traefik rule (Domains field needs the literal FQDN, see coolify-setup.md history); confirmed valid Let's Encrypt cert (issuer Let's Encrypt, expires 2026-10-18) and `https://api.nrighar.3pandalabs.com/health` returns `200 {"ok":true}`

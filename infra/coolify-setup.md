@@ -24,9 +24,11 @@ This connection string is `DATABASE_URL` for `nrighar-api` (step 4).
 
 ## 3. Configure scheduled backups to R2
 
-Still inside the Postgres resource: **Backups** tab → **Add Scheduled Backup**.
+**First, register R2 as an S3 Storage destination in Coolify's global Storages section** (main nav / team settings → **S3** or **Storages** — NOT inside the Postgres resource itself). The Postgres resource's own Backups tab only lets you *pick* an already-validated S3 Storage ("No validated S3 Storages found" if you try to configure a backup before this step exists — hit this 2026-07-20). Add New S3 Storage: Region `auto`, Endpoint `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`, Key/Secret from `r2-setup.md`, Bucket `nrighar-backups`. Confirm it shows `is_usable`/validated before moving on.
 
-- **S3-compatible storage target:** use the R2 credentials from `r2-setup.md`.
+Then, inside the Postgres resource: **Backups** tab → **Add Scheduled Backup**.
+
+- **S3-compatible storage target:** select the S3 Storage you just registered above.
   - Endpoint: `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`
   - Access key / secret key: the R2 API token pair
   - Bucket: use a **separate bucket** from the documents bucket — create `nrighar-backups` in the same Cloudflare account (cheap, and keeps "user files" and "DB backups" blast-radius separate; don't reuse `nrighar-documents` with a prefix, a bucket-level access mistake on one shouldn't touch the other).
