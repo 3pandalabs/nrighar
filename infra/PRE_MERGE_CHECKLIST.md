@@ -53,7 +53,7 @@
 - [x] Custom domain `nrighar.3pandalabs.com` attached to the Worker — hit two errors along the way: "No zones match" (transient/wrong context on first attempt) then "Hostname already has externally managed DNS records" (the old Vercel CNAME had to be deleted first — this was the actual live cutover moment)
 - [x] Verified: DNS resolves to Cloudflare edge IPs, `/` and `/login` return `200` served by the new Worker (`x-opennext: 1`, `Server: cloudflare` headers confirm it), unauthenticated `/dashboard` correctly redirects to `/login` (307)
 - [x] Full signup → authenticated create/list → session-check round trip tested directly against the live production API with a disposable test account, all `2xx`, test data cleaned up after (one harmless residual: the test user row itself has no delete-user API route to remove it)
-- [ ] `JWT_SECRET` Worker secret — STILL NEEDS CONFIRMING: not verified whether this was actually set via `wrangler secret put JWT_SECRET` before deploy, since the layout-level auth check depends on it matching the API's value exactly
+- [x] `JWT_SECRET` Worker secret set (`wrangler secret put`), confirmed present via `wrangler secret list`
 - [ ] Full UI-level smoke test (login form → dashboard click-through → document upload/view → pay-link/intake-link/profile-share flows) — only the API layer was tested directly above; the actual web UI forms haven't been clicked through yet (no browser automation available this session)
 
 ## 7. Ship the new mobile build
