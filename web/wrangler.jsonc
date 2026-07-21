@@ -13,6 +13,14 @@
   // (layout instead of edge) — no data exposure difference. Re-add an edge
   // check later if the adapter fixes this upstream and it's worth the
   // latency win.
+  // package.json's "build" script uses `next build --webpack`, not the
+  // Next.js 16 default (Turbopack). @opennextjs/cloudflare 1.20.1 doesn't
+  // fully support Turbopack output yet (github.com/opennextjs/opennextjs-
+  // cloudflare issue #569) — a Turbopack build deploys and looks fine until
+  // any page is actually requested, then every route 500s with
+  // "ChunkLoadError: Failed to load chunk ... from runtime" (hit this in
+  // production 2026-07-21). Switching to --webpack fixed it immediately,
+  // confirmed via local `wrangler dev` preview before redeploying.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "nrighar-web",
   "main": ".open-next/worker.js",
@@ -24,7 +32,11 @@
   },
   "vars": {
     "NEXT_PUBLIC_API_URL": "https://api.nrighar.3pandalabs.com",
-    "NEXT_PUBLIC_SITE_URL": "https://nrighar.3pandalabs.com"
+    "NEXT_PUBLIC_SITE_URL": "https://nrighar.3pandalabs.com",
+    // DNS-only (unproxied) hostname for the same origin — see
+    // lib/api/client.ts for why server-side calls need this instead of
+    // NEXT_PUBLIC_API_URL (Cloudflare "orange-to-orange" 403).
+    "INTERNAL_API_URL": "https://api-internal.nrighar.3pandalabs.com"
   }
   // JWT_SECRET must be set as a Worker secret, not a plaintext var:
   //   npx wrangler secret put JWT_SECRET

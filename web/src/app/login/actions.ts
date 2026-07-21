@@ -23,6 +23,6 @@ export async function signIn(email: string, password: string): Promise<Result> {
     const user = await apiLogin(email, password);
     return { ok: true, role: user.role };
   } catch (e) {
-    return { ok: false, error: e instanceof ApiError ? e.code : "invalid_credentials" };
+    return { ok: false, error: e instanceof ApiError ? e.code : "unknown_error" };
   }
 }

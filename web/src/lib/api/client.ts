@@ -1,6 +1,14 @@
 import { cookies } from "next/headers";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+// INTERNAL_API_URL (server-only, not NEXT_PUBLIC_-prefixed so it's never
+// inlined into client bundles) points at a DNS-only hostname for this same
+// origin. Same-account Cloudflare Worker subrequests to a Cloudflare-proxied
+// hostname get 403'd by Cloudflare's "orange-to-orange" restriction, which
+// sits ahead of WAF evaluation and can't be bypassed by a WAF skip rule
+// (confirmed 2026-07-21: a WAF rule matching cf.worker.upstream_zone saw
+// zero events on a failing request). Routing through the unproxied hostname
+// avoids the same-zone proxy path entirely.
+const API_URL = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 const ACCESS_COOKIE = "nrighar_access";
 const REFRESH_COOKIE = "nrighar_refresh";
