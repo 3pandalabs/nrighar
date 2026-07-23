@@ -129,6 +129,20 @@ Same project → **New Resource → Application** → **Public Repository**:
 | `TEMPORAL_ADDRESS` | `<temporal container's current name>:7233` — e.g. `sqtxly19t7pnzmgj21ta0rwy-160903547475:7233` as of 2026-07-23. **Goes stale on every `temporal` redeploy** — same gotcha as `temporal-ui`'s `TEMPORAL_ADDRESS`, see [[temporal_coolify_setup]]. Check via `docker inspect <container> --format '{{json .NetworkSettings.Networks.coolify.Aliases}}'` on the box. | no |
 | `TEMPORAL_NAMESPACE` | `default` | no |
 | `TEMPORAL_TASK_QUEUE` | `nrighar` | no |
+| `DATABASE_URL` | same value as `nrighar-api`'s | yes |
+| `JWT_SECRET` | same value as `nrighar-api`'s | yes |
+| `R2_ACCOUNT_ID` | same value as `nrighar-api`'s | no |
+| `R2_ACCESS_KEY_ID` | same value as `nrighar-api`'s | yes |
+| `R2_SECRET_ACCESS_KEY` | same value as `nrighar-api`'s | yes |
+| `R2_BUCKET` | same value as `nrighar-api`'s | no |
+| `R2_ENDPOINT` | same value as `nrighar-api`'s | no |
+
+Added 2026-07-23 when route handlers were migrated to run through Temporal
+workflows: activities now do real DB/R2/JWT work (previously this resource
+only made outbound Temporal connections), so it needs the same
+DATABASE_URL/JWT_SECRET/R2_* env as `nrighar-api` — `api/src/env.ts` validates
+all of these eagerly at import time, so the worker process crashes on startup
+if any is missing, even if the specific activity that ran doesn't touch R2.
 
 Deploy. Confirm it's actually polling via `docker logs <worker-container>` — should log `nrighar-worker: polling task queue "nrighar" at ...` and `Worker state changed ... state: RUNNING`, no connection errors.
 
