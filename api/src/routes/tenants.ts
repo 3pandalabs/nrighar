@@ -1,8 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { db, schema } from "../db/index.js";
 import { requireAuth } from "../auth/plugin.js";
+import { sendWorkflow } from "../temporal/runWorkflow.js";
 
 const tenantBody = z.object({
   fullName: z.string().min(1),
@@ -13,28 +12,25 @@ const tenantBody = z.object({
 });
 
 // Owner-side tenant records — owner_id = me pattern, same as properties.ts.
+// Business logic runs in tenantsWorkflow-family Temporal workflows
+// (api/src/temporal/workflows/tenants.ts).
 export async function tenantRoutes(app: FastifyInstance) {
   app.get("/tenants", { preHandler: requireAuth }, async (req, reply) => {
-    const rows = await db.select().from(schema.tenants).where(eq(schema.tenants.ownerId, req.userId!));
-    return reply.send(rows);
+    return sendWorkflow(reply, "listTenantsWorkflow", [{ ownerId: req.userId! }]);
   });
 
   app.post("/tenants", { preHandler: requireAuth, schema: { body: tenantBody } }, async (req, reply) => {
-    const [row] = await db
-      .insert(schema.tenants)
-      .values({ ...(req.body as z.infer<typeof tenantBody>), ownerId: req.userId! })
-      .returning();
-    return reply.code(201).send(row);
+    return sendWorkflow(
+      reply,
+      "createTenantWorkflow",
+      [{ ownerId: req.userId!, body: req.body as z.infer<typeof tenantBody> }],
+      201,
+    );
   });
 
   app.get("/tenants/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const [row] = await db
-      .select()
-      .from(schema.tenants)
-      .where(and(eq(schema.tenants.id, id), eq(schema.tenants.ownerId, req.userId!)));
-    if (!row) return reply.code(404).send({ error: "not_found" });
-    return reply.send(row);
+    return sendWorkflow(reply, "getTenantWorkflow", [{ id, ownerId: req.userId! }]);
   });
 
   app.patch(
@@ -42,23 +38,14 @@ export async function tenantRoutes(app: FastifyInstance) {
     { preHandler: requireAuth, schema: { body: tenantBody.partial() } },
     async (req, reply) => {
       const { id } = req.params as { id: string };
-      const [row] = await db
-        .update(schema.tenants)
-        .set(req.body as Partial<z.infer<typeof tenantBody>>)
-        .where(and(eq(schema.tenants.id, id), eq(schema.tenants.ownerId, req.userId!)))
-        .returning();
-      if (!row) return reply.code(404).send({ error: "not_found" });
-      return reply.send(row);
+      return sendWorkflow(reply, "updateTenantWorkflow", [
+        { id, ownerId: req.userId!, body: req.body as Partial<z.infer<typeof tenantBody>> },
+      ]);
     },
   );
 
   app.delete("/tenants/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const [row] = await db
-      .delete(schema.tenants)
-      .where(and(eq(schema.tenants.id, id), eq(schema.tenants.ownerId, req.userId!)))
-      .returning({ id: schema.tenants.id });
-    if (!row) return reply.code(404).send({ error: "not_found" });
-    return reply.code(204).send();
+    return sendWorkflow(reply, "deleteTenantWorkflow", [{ id, ownerId: req.userId! }], 204);
   });
 }

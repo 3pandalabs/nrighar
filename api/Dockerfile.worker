@@ -1,5 +1,7 @@
 # Temporal worker: same source tree as the api server (Dockerfile), but a
-# separate deploy — no HTTP port, no DB/JWT/R2 env vars, just TEMPORAL_*.
+# separate deploy — no HTTP port. Activities now do real DB/R2/JWT work, so
+# this resource's Coolify env needs the same DATABASE_URL/JWT_SECRET/R2_*
+# vars as the api server, plus TEMPORAL_*.
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json* ./

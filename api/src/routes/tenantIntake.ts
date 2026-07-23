@@ -1,19 +1,18 @@
 import type { FastifyInstance } from "fastify";
-import { eq } from "drizzle-orm";
-import { db, schema } from "../db/index.js";
 import { putObject } from "../plugins/r2.js";
+import { runWorkflow } from "../temporal/runWorkflow.js";
+import type { HttpFailure } from "../temporal/runWorkflow.js";
 
 const MAX_FILES = 6;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf", "xml", "zip"];
 const TOKEN_RE = /^[0-9a-f-]{36}$/i;
 
-// Ports supabase/functions/tenant-intake/index.ts directly. Anonymous but
-// token-gated: no auth required, the caller must present a pending,
-// unexpired intake_links uuid. Files land in the OWNER's R2 prefix
-// (<ownerId>/intake/<token>/...) so the owner's normal storage access covers
-// them — the anonymous submitter never gets a read path back, matching the
-// old Edge Function's service-role-bypass trust model exactly.
+// Anonymous but token-gated: no auth required, the caller must present a
+// pending, unexpired intake_links uuid. Multipart draining, file-shape
+// validation, and the R2 writes themselves stay here (raw bytes can't cross
+// a Temporal payload boundary) — link validation and all DB writes run
+// through Temporal workflows (api/src/temporal/workflows/tenantIntake.ts).
 export async function tenantIntakeRoutes(app: FastifyInstance) {
   app.post("/tenant-intake/:token", async (req, reply) => {
     const { token } = req.params as { token: string };
@@ -51,41 +50,34 @@ export async function tenantIntakeRoutes(app: FastifyInstance) {
 
     if (!fullName) return reply.code(400).send({ error: "Name is required" });
 
-    const [link] = await db.select().from(schema.intakeLinks).where(eq(schema.intakeLinks.id, token));
-    if (!link) return reply.code(404).send({ error: "This link doesn't exist" });
-    if (link.status !== "pending") return reply.code(409).send({ error: "This link was already used" });
-    if (link.expiresAt < new Date()) return reply.code(410).send({ error: "This link has expired" });
-
-    const [tenant] = await db
-      .insert(schema.tenants)
-      .values({
-        ownerId: link.ownerId,
-        fullName,
-        phone: phone || undefined,
-        email: email || undefined,
-        kycStatus: files.length > 0 ? "submitted" : "pending",
-        notes: "Self-registered via intake link",
-      })
-      .returning({ id: schema.tenants.id });
-
-    for (const f of files) {
-      const safeName = f.name.replace(/[^\w.-]/g, "_");
-      const path = `${link.ownerId}/intake/${token}/${safeName}`;
-      await putObject(path, f.buffer);
-      await db.insert(schema.documents).values({
-        ownerId: link.ownerId,
-        propertyId: link.propertyId,
-        docType: "kyc",
-        title: `${fullName} — ${safeName}`,
-        storagePath: path,
-      });
+    let link: { ownerId: string; propertyId: string | null };
+    try {
+      link = await runWorkflow(
+        "validateIntakeLinkForSubmissionWorkflow",
+        [{ token }],
+      );
+    } catch (err) {
+      const { status, body } = err as HttpFailure;
+      return reply.code(status).send(body);
     }
 
-    await db
-      .update(schema.intakeLinks)
-      .set({ status: "submitted", tenantId: tenant.id, submittedAt: new Date() })
-      .where(eq(schema.intakeLinks.id, token));
+    const uploaded: { key: string; title: string }[] = [];
+    for (const f of files) {
+      const safeName = f.name.replace(/[^\w.-]/g, "_");
+      const key = `${link.ownerId}/intake/${token}/${safeName}`;
+      await putObject(key, f.buffer);
+      uploaded.push({ key, title: `${fullName} — ${safeName}` });
+    }
 
-    return reply.send({ ok: true });
+    try {
+      const result = await runWorkflow(
+        "finalizeIntakeSubmissionWorkflow",
+        [{ token, ownerId: link.ownerId, propertyId: link.propertyId, fullName, phone, email, files: uploaded }],
+      );
+      return reply.send(result);
+    } catch (err) {
+      const { status, body } = err as HttpFailure;
+      return reply.code(status).send(body);
+    }
   });
 }

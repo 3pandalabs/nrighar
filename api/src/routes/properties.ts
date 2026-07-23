@@ -1,8 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { db, schema } from "../db/index.js";
 import { requireAuth } from "../auth/plugin.js";
+import { sendWorkflow } from "../temporal/runWorkflow.js";
 
 const propertyBody = z.object({
   nickname: z.string().min(1),
@@ -21,29 +20,26 @@ const propertyBody = z.object({
 // "owner_id = me" RLS-policy pattern, reproduced consistently across
 // properties/tenants/leases/rent_payments/documents/pay_links/intake_links.
 // A row that exists but belongs to someone else 404s, not 403s (don't leak
-// existence).
+// existence). Business logic runs in propertiesWorkflow-family Temporal
+// workflows (api/src/temporal/workflows/properties.ts) — this handler just
+// validates input and translates the workflow result to an HTTP response.
 export async function propertyRoutes(app: FastifyInstance) {
   app.get("/properties", { preHandler: requireAuth }, async (req, reply) => {
-    const rows = await db.select().from(schema.properties).where(eq(schema.properties.ownerId, req.userId!));
-    return reply.send(rows);
+    return sendWorkflow(reply, "listPropertiesWorkflow", [{ ownerId: req.userId! }]);
   });
 
   app.post("/properties", { preHandler: requireAuth, schema: { body: propertyBody } }, async (req, reply) => {
-    const [row] = await db
-      .insert(schema.properties)
-      .values({ ...(req.body as z.infer<typeof propertyBody>), ownerId: req.userId! })
-      .returning();
-    return reply.code(201).send(row);
+    return sendWorkflow(
+      reply,
+      "createPropertyWorkflow",
+      [{ ownerId: req.userId!, body: req.body as z.infer<typeof propertyBody> }],
+      201,
+    );
   });
 
   app.get("/properties/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const [row] = await db
-      .select()
-      .from(schema.properties)
-      .where(and(eq(schema.properties.id, id), eq(schema.properties.ownerId, req.userId!)));
-    if (!row) return reply.code(404).send({ error: "not_found" });
-    return reply.send(row);
+    return sendWorkflow(reply, "getPropertyWorkflow", [{ id, ownerId: req.userId! }]);
   });
 
   app.patch(
@@ -51,23 +47,14 @@ export async function propertyRoutes(app: FastifyInstance) {
     { preHandler: requireAuth, schema: { body: propertyBody.partial() } },
     async (req, reply) => {
       const { id } = req.params as { id: string };
-      const [row] = await db
-        .update(schema.properties)
-        .set(req.body as Partial<z.infer<typeof propertyBody>>)
-        .where(and(eq(schema.properties.id, id), eq(schema.properties.ownerId, req.userId!)))
-        .returning();
-      if (!row) return reply.code(404).send({ error: "not_found" });
-      return reply.send(row);
+      return sendWorkflow(reply, "updatePropertyWorkflow", [
+        { id, ownerId: req.userId!, body: req.body as Partial<z.infer<typeof propertyBody>> },
+      ]);
     },
   );
 
   app.delete("/properties/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const [row] = await db
-      .delete(schema.properties)
-      .where(and(eq(schema.properties.id, id), eq(schema.properties.ownerId, req.userId!)))
-      .returning({ id: schema.properties.id });
-    if (!row) return reply.code(404).send({ error: "not_found" });
-    return reply.code(204).send();
+    return sendWorkflow(reply, "deletePropertyWorkflow", [{ id, ownerId: req.userId! }], 204);
   });
 }
