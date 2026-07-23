@@ -2,21 +2,30 @@
 # separate deploy — no HTTP port. Activities now do real DB/R2/JWT work, so
 # this resource's Coolify env needs the same DATABASE_URL/JWT_SECRET/R2_*
 # vars as the api server, plus TEMPORAL_*.
-FROM node:20-alpine AS build
+#
+# Deliberately NOT alpine (unlike Dockerfile): @temporalio/worker pulls in
+# @temporalio/core-bridge, a native Rust binary published only as a
+# glibc-linked build (release path ends in `-unknown-linux-gnu`). Alpine's
+# musl libc can't load it — fails at runtime with `ERR_DLOPEN_FAILED: Error
+# loading shared library ld-linux-x86-64.so.2` (found the hard way, first
+# time this image actually ran as a container instead of under `tsx`
+# locally). bookworm-slim is glibc-based and otherwise as small as
+# reasonably gets for Debian.
+FROM node:20-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine AS runtime
+FROM node:20-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 
-RUN addgroup -S nrighar && adduser -S nrighar -G nrighar
+RUN groupadd --system nrighar && useradd --system --gid nrighar nrighar
 USER nrighar
 
 CMD ["node", "dist/temporal/worker.js"]
