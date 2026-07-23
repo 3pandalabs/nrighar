@@ -108,3 +108,30 @@ Symptom in the app: `apiLogin`/`apiFetch` (server-side only) intermittently got 
 3. After the restart, DNS-01 was actually attempted but failed: `dns01: time limit exceeded: ... recursive nameservers: NS 127.0.0.11:53 returned NXDOMAIN`. `127.0.0.11` is Docker's embedded per-container DNS resolver — it doesn't reliably do external recursive lookups for freshly-created records inside this container network. Verified the Cloudflare API token itself was fine throughout (temporarily added a diagnostic IP to its allowlist and confirmed both the zone lookup and a real TXT record create/delete succeeded directly against Cloudflare's API). Fix: added `--certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53` to the `traefik` service's `command:` so Lego's propagation check bypasses Docker's resolver and queries public DNS directly. Another Restart Proxy, and the cert issued and login worked end-to-end.
 
 If a future domain needs DNS-01 and hits an unexplained propagation timeout, check this resolver flag is still present before assuming it's a token/permissions problem again.
+
+## 8. Add the nrighar-worker application resource (Temporal worker)
+
+Background/durable workflows run in a separate process from `nrighar-api` — a Temporal worker that polls the shared Temporal server (see `ops/tech-stack.md` / [[temporal_coolify_setup]] for the server itself, already running on this same box as two Coolify Docker-Image resources: `temporal` and `temporal-ui`).
+
+Same project → **New Resource → Application** → **Public Repository**:
+
+- Repository: `https://github.com/3pandalabs/nrighar`, branch `main`
+- **Build Pack:** Dockerfile
+- **Base Directory:** `api`
+- **Dockerfile location:** `Dockerfile.worker` (relative to Base Directory — not `api/Dockerfile.worker`, same gotcha as step 4)
+- **No domain, no port mapping** — this process only makes outbound connections (to Temporal), it doesn't listen for inbound HTTP. Leave "Ports Exposes" alone / don't add a domain.
+- **Network:** must be on the same predefined `coolify` network as the `temporal` resource (Coolify puts all resources in a project on this network by default — no action needed unless that's changed).
+
+**Environment variables:**
+
+| Key | Value | Secret? |
+|---|---|---|
+| `TEMPORAL_ADDRESS` | `<temporal container's current name>:7233` — e.g. `sqtxly19t7pnzmgj21ta0rwy-160903547475:7233` as of 2026-07-23. **Goes stale on every `temporal` redeploy** — same gotcha as `temporal-ui`'s `TEMPORAL_ADDRESS`, see [[temporal_coolify_setup]]. Check via `docker inspect <container> --format '{{json .NetworkSettings.Networks.coolify.Aliases}}'` on the box. | no |
+| `TEMPORAL_NAMESPACE` | `default` | no |
+| `TEMPORAL_TASK_QUEUE` | `nrighar` | no |
+
+Deploy. Confirm it's actually polling via `docker logs <worker-container>` — should log `nrighar-worker: polling task queue "nrighar" at ...` and `Worker state changed ... state: RUNNING`, no connection errors.
+
+**Debugging note (found 2026-07-23):** the `temporal` container was listening on its IPv6-only network address at the time (`ss -tlnp` inside the container showed `fd52:...:7233`, nothing on an IPv4 address) — connecting by container **name** works fine (Docker's embedded DNS + the SDK's dual-stack-aware resolver handle it transparently), but connecting by the container's IPv4 address from outside the `coolify` network (e.g. testing over an SSH tunnel) gets `connection refused`/`ConnectionReset`. If you need to smoke-test connectivity from off-box, tunnel to the container's IPv6 address instead (`ssh -L <port>:[<ipv6-addr>]:7233 root@<box>`), or just deploy and check logs rather than tunneling.
+
+Local dev: there's no Temporal server in `docker-compose.dev.yml` (production-only infra). Either run `temporal server start-dev` (Temporal CLI's built-in in-memory dev server) and point `TEMPORAL_ADDRESS` at it, or tunnel to the real server as above and run `npm run worker:dev` / `npm run temporal:ping` from `api/`.
