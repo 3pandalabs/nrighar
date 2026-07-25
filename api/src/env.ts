@@ -16,4 +16,8 @@ export const env = {
   R2_SECRET_ACCESS_KEY: required("R2_SECRET_ACCESS_KEY"),
   R2_BUCKET: required("R2_BUCKET"),
   R2_ENDPOINT: required("R2_ENDPOINT"),
+  // Bearer token for the ops-only GET /metrics endpoint. Intentionally NOT
+  // required: when unset the route answers 503 and the rest of the API boots
+  // normally, so a missing ops secret can't take a deploy down.
+  METRICS_TOKEN: process.env.METRICS_TOKEN ?? "",
 };
