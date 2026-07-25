@@ -27,8 +27,10 @@ EXPOSE 8080
 # DO $$ ... WHEN duplicate_object guards — so a redeploy re-applies pending
 # migrations safely and self-heals the schema.
 #
-# migrate.js runs as a PRIVILEGED role via MIGRATION_DATABASE_URL (owner/DDL),
-# NOT the least-privilege runtime DATABASE_URL — that role can't run DDL or use
-# the drizzle schema (fails 42501). Set MIGRATION_DATABASE_URL in the api env.
+# migrate.js runs as the runtime role (DATABASE_URL). There is no role split in
+# prod — `nrighar_app` owns the database and can run DDL. Do NOT set
+# MIGRATION_DATABASE_URL to a superuser: with no default privileges configured,
+# tables it created would be owned by `postgres` and unreadable by the runtime
+# role. See src/db/migrate.ts for the 42501 schema-ownership gotcha.
 # To apply out-of-band instead: `node dist/db/migrate.js` in the container.
 CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]

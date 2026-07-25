@@ -22,6 +22,38 @@ Dashboard → **Projects** → (create or pick a project, e.g. "NRIGhar") → **
 
 This connection string is `DATABASE_URL` for `nrighar-api` (step 4).
 
+### Current reality: ONE shared Postgres, scoped role per app
+
+**Superseded 2026-07-22 by the server consolidation.** There is no longer a
+dedicated `nrighar-postgres` resource. All apps share a single `postgres:17-alpine`
+instance on `nrighar-coolify-fsn`, with a separate database + owning role each:
+
+| Database | Owning role |
+|---|---|
+| `nrighar` | `nrighar_app` |
+| `receiptcash` | `receiptcash_app` |
+| `temporal`, `temporal_visibility` | `temporal_app` |
+
+Each app role **owns its own database and every table in it** — it is not a
+least-privilege/read-only role, and it runs its own DDL/migrations. There is no
+separate migration role, and `MIGRATION_DATABASE_URL` should stay unset (see
+`api/src/db/migrate.ts`).
+
+Two things to know when touching this:
+
+- **Don't run migrations as `postgres`.** No default privileges are configured
+  (`\ddp` returns 0 rows), so anything a superuser creates is owned by `postgres`
+  and the app role gets `42501 permission denied` on it at runtime. This is
+  exactly how the `drizzle` bookkeeping schema ended up mis-owned and
+  crash-looped `nrighar-api` on 2026-07-25; fixed with
+  `ALTER SCHEMA drizzle OWNER TO nrighar_app;` and the same `ALTER TABLE` on
+  `drizzle.__drizzle_migrations`.
+- **Coolify container names are opaque** (`<random-id>`, not the resource name),
+  so `docker ps --filter name=nrighar-postgres` matches nothing. Find the right
+  one with `docker ps --format '{{.Names}}\t{{.Image}}'` and confirm via
+  `docker exec -i <name> psql -U postgres -c '\l'` — pick the one listing the
+  app databases.
+
 ## 3. Configure scheduled backups to R2
 
 **First, register R2 as an S3 Storage destination in Coolify's global Storages section** (main nav / team settings → **S3** or **Storages** — NOT inside the Postgres resource itself). The Postgres resource's own Backups tab only lets you *pick* an already-validated S3 Storage ("No validated S3 Storages found" if you try to configure a backup before this step exists — hit this 2026-07-20). Add New S3 Storage: Region `auto`, Endpoint `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`, Key/Secret from `r2-setup.md`, Bucket `nrighar-backups`. Confirm it shows `is_usable`/validated before moving on.
@@ -55,7 +87,7 @@ Same project → **New Resource → Application** → **Public Repository** (or 
 
 | Key | Value | Secret? |
 |---|---|---|
-| `DATABASE_URL` | internal connection string from step 2 | yes |
+| `DATABASE_URL` | internal connection string from step 2, as the `nrighar_app` role against the `nrighar` database | yes |
 | `JWT_SECRET` | `openssl rand -base64 48` — generate fresh, don't reuse anything from Supabase | yes |
 | `R2_ACCOUNT_ID` | from `r2-setup.md` | no |
 | `R2_ACCESS_KEY_ID` | from `r2-setup.md` | yes |
