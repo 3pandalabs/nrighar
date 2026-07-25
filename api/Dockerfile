@@ -20,11 +20,11 @@ RUN addgroup -S nrighar && adduser -S nrighar -G nrighar
 USER nrighar
 
 EXPOSE 8080
-# NOTE (2026-07-24): migrations are TEMPORARILY decoupled from startup. Running
-# `node dist/db/migrate.js && node dist/index.js` here is correct in principle,
-# but a failing migration then crash-loops the whole api (fail-fast) — which
-# took prod down. Reverted to server-only start to keep the service up while we
-# diagnose the migration failure. Apply migrations deliberately via
-# `npm run db:migrate:prod` (compiled: `node dist/db/migrate.js`) in the
-# container, confirm they succeed, THEN restore the migrate-on-start CMD.
-CMD ["node", "dist/index.js"]
+# Migrate-on-start (restored 2026-07-25). The 2026-07-24 crash-loop that took
+# prod down was migration 0002 being non-idempotent: a re-run hit
+# "column already exists" and fail-fast crash-looped the whole api. All
+# migrations (0002 included) are now idempotent — ADD COLUMN IF NOT EXISTS and
+# DO $$ ... WHEN duplicate_object guards — so a redeploy re-applies pending
+# migrations safely and self-heals the schema. To apply out-of-band instead,
+# run `node dist/db/migrate.js` (`npm run db:migrate:prod`) in the container.
+CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]
