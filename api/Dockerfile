@@ -25,6 +25,10 @@ EXPOSE 8080
 # "column already exists" and fail-fast crash-looped the whole api. All
 # migrations (0002 included) are now idempotent — ADD COLUMN IF NOT EXISTS and
 # DO $$ ... WHEN duplicate_object guards — so a redeploy re-applies pending
-# migrations safely and self-heals the schema. To apply out-of-band instead,
-# run `node dist/db/migrate.js` (`npm run db:migrate:prod`) in the container.
+# migrations safely and self-heals the schema.
+#
+# migrate.js runs as a PRIVILEGED role via MIGRATION_DATABASE_URL (owner/DDL),
+# NOT the least-privilege runtime DATABASE_URL — that role can't run DDL or use
+# the drizzle schema (fails 42501). Set MIGRATION_DATABASE_URL in the api env.
+# To apply out-of-band instead: `node dist/db/migrate.js` in the container.
 CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]
