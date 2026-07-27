@@ -65,7 +65,7 @@ export default async function ListingsPage({
       <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
         <h2 className="mb-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">Open a listing</h2>
         <p className="mb-4 text-sm text-zinc-500">
-          Invite competing applications from tenant accounts on NRIGhar. A property can have one open
+          Invite competing applications from tenant accounts on RentVault. A property can have one open
           listing at a time.
         </p>
         {availableProperties.length > 0 ? (

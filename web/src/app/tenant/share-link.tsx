@@ -5,7 +5,7 @@ import { useState } from "react";
 export function ShareLinkActions({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
 
-  const message = `Hi! Here's my NRIGhar renter profile with my details and documents: ${url}`;
+  const message = `Hi! Here's my RentVault renter profile with my details and documents: ${url}`;
 
   async function handleCopy() {
     await navigator.clipboard.writeText(url);

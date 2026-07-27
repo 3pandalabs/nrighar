@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NRIGhar",
+  title: "RentVault",
   description:
     "Manage your rental property in India from anywhere — tenants, rent, and documents in one place, built for NRIs.",
 };

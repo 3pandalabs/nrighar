@@ -41,7 +41,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center px-6">
       <GradientBackdrop />
       <Link href="/" className="mb-8 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-        NRIGhar
+        RentVault
       </Link>
 
       <form

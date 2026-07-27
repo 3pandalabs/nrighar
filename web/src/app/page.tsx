@@ -6,7 +6,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       <GradientBackdrop />
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-6">
-        <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">NRIGhar</span>
+        <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">RentVault</span>
         <Link
           href="/login"
           className="rounded-full border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-900 hover:text-white dark:border-zinc-700 dark:text-zinc-50"
@@ -20,7 +20,7 @@ export default function Home() {
           Your property in India. Managed from anywhere.
         </h1>
         <p className="max-w-xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-          NRIGhar keeps NRI landlords on top of their rentals back home — tenants, monthly rent in
+          RentVault keeps NRI landlords on top of their rentals back home — tenants, monthly rent in
           INR and your home currency, and every agreement and document in one safe place.
         </p>
         <div className="flex flex-col gap-4 sm:flex-row">

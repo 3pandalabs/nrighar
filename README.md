@@ -1,4 +1,4 @@
-# NRIGhar
+# RentVault
 
 Property management for landlords and tenants in India — one repo, whole product.
 

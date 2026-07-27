@@ -1,6 +1,8 @@
-# NRIGhar
+# RentVault
 
-Property management for NRI landlords renting out property in India — landlord/tenant two-sided platform. Part of 3PandaLabs. Live at nrighar.3pandalabs.com. (Note: a rename to "GharPass" is planned/pending — repo and code still say NRIGhar until that lands.)
+Property management for NRI landlords renting out property in India — landlord/tenant two-sided platform. Part of 3PandaLabs. Live at nrighar.3pandalabs.com.
+
+**Naming:** the product is branded **RentVault** (renamed from "NRIGhar" 2026-07-26; an earlier "GharPass" rename was considered and dropped). The rename was deliberately **user-facing copy only** — every internal identifier still says `nrighar` and should stay that way unless there's a reason to churn it: repo name, npm package names, the `nrighar.3pandalabs.com` / `api.nrighar.3pandalabs.com` hosts, DB name/role, R2 buckets (`nrighar-documents`, `nrighar-backups`), auth cookies (`nrighar_access`/`nrighar_refresh`), the Temporal task queue `nrighar`, Coolify resource + container names, mobile bundle ID `com.threepanda.nrighar`, and the `app: "nrighar"` key in `api/src/routes/metrics.ts` that `3pandalabs-admin` reads. When adding user-visible text, say RentVault; when adding config/infra, match the existing `nrighar` identifiers.
 
 Single monorepo, merged 2026-07-18 from former `nrighar-web` + `nrighar-app` repos (both histories preserved). Backend migrated off Supabase to a self-hosted `api/` service on Hetzner/Coolify (2026-07-22); the original Supabase project is paused, not deleted.
 

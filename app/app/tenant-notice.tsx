@@ -6,7 +6,7 @@ export default function TenantNoticeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>NRIGhar</Text>
+      <Text style={styles.title}>RentVault</Text>
       <Text style={styles.heading}>You&apos;re signed in as a tenant 🏠</Text>
       <Text style={styles.body}>
         The tenant experience lives on the web for now — manage your renter profile, documents,
