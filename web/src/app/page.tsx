@@ -50,10 +50,6 @@ export default function Home() {
           description="Rent agreements, tenant KYC, and property papers in a private vault you can open from any timezone."
         />
       </section>
-
-      <footer className="mx-auto w-full max-w-5xl px-6 py-8 text-center text-sm text-zinc-500">
-        &copy; {new Date().getFullYear()} 3PandaLabs
-      </footer>
     </div>
   );
 }
