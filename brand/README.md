@@ -1,6 +1,6 @@
-# NRIGhar icon
+# RentVault icon
 
-White home glyph on emerald `#059669` (the accent color used across the NRIGhar web UI).
+White home glyph on emerald `#059669` (the accent color used across the RentVault web UI).
 
 Product-level brand assets live here with the product (the org-level
 `3pandalabs/brand` repo holds company identity only). When the web and app

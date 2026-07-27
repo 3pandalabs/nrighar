@@ -1,6 +1,6 @@
 # nrighar-web
 
-NRIGhar — property management for NRI landlords renting out property in India. Web dashboard + marketing landing page, built with Next.js 16, Tailwind 4, and Supabase.
+RentVault — property management for NRI landlords renting out property in India. Web dashboard + marketing landing page, built with Next.js 16, Tailwind 4, and Supabase.
 
 Part of [3PandaLabs](https://3pandalabs.com). Companion mobile app: [nrighar-app](https://github.com/3pandalabs/nrighar-app).
 

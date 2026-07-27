@@ -204,7 +204,7 @@ export function IntakeForm({ token }: { token: string }) {
       ) : (
         <form onSubmit={handleExisting} className="flex flex-col gap-4">
           <p className="text-sm text-zinc-500">
-            Sign in to your NRIGhar renter profile — it will be shared with this landlord in one
+            Sign in to your RentVault renter profile — it will be shared with this landlord in one
             step, documents included.
           </p>
           <Field label="Email" required type="email" value={email} onChange={setEmail} />

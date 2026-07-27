@@ -19,7 +19,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 px-6 py-12 dark:bg-black">
-      <p className="mb-8 text-lg font-semibold text-zinc-900 dark:text-zinc-50">NRIGhar</p>
+      <p className="mb-8 text-lg font-semibold text-zinc-900 dark:text-zinc-50">RentVault</p>
       <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-950">
         {!data ? (
           <p className="text-center text-sm text-zinc-500">
@@ -51,8 +51,8 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
         )}
       </div>
       <p className="mt-6 max-w-md text-center text-xs text-zinc-400">
-        Your documents go directly and only to your landlord — NRIGhar stores them privately and
-        never shares them. Powered by NRIGhar · 3PandaLabs
+        Your documents go directly and only to your landlord — RentVault stores them privately and
+        never shares them. Powered by RentVault · 3PandaLabs
       </p>
     </div>
   );

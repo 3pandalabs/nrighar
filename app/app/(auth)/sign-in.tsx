@@ -41,7 +41,7 @@ export default function SignInScreen() {
         <View style={styles.logoBadge}>
           <Text style={styles.logoGlyph}>🏠</Text>
         </View>
-        <Text style={styles.title}>NRIGhar</Text>
+        <Text style={styles.title}>RentVault</Text>
         <Text style={styles.subtitle}>
           {mode === "sign-in" ? "Sign in to your account" : "Create an account"}
         </Text>

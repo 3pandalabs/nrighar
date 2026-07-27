@@ -24,12 +24,12 @@ export default async function ProfileSharePage({
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 px-6 py-12 dark:bg-black">
-      <p className="mb-8 text-lg font-semibold text-zinc-900 dark:text-zinc-50">NRIGhar</p>
+      <p className="mb-8 text-lg font-semibold text-zinc-900 dark:text-zinc-50">RentVault</p>
       <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-950">
         {!user ? (
           <div className="flex flex-col gap-4 text-center">
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              A tenant shared their renter profile with you. Sign in to your NRIGhar owner account
+              A tenant shared their renter profile with you. Sign in to your RentVault owner account
               to view it — then reopen this link.
             </p>
             <Link

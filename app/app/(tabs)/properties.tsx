@@ -47,7 +47,7 @@ export default function PropertiesScreen() {
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={
           <Text style={styles.empty}>
-            No properties yet — add them from the NRIGhar web dashboard.
+            No properties yet — add them from the RentVault web dashboard.
           </Text>
         }
         renderItem={({ item }) => {
