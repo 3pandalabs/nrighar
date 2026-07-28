@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { ApplicationFailure } from "@temporalio/common";
 import { db, pool, schema } from "../../db/index.js";
 import { hashPassword, verifyPassword } from "../../auth/password.js";
@@ -96,6 +96,24 @@ export async function logoutActivity(input: { refreshToken: string }) {
   if (matched) {
     await db.delete(schema.sessions).where(eq(schema.sessions.id, matched.id));
   }
+}
+
+// Hard-delete refresh-token rows whose expiry has passed. Nothing else ever
+// removed them: issueSession() inserts one per signup/login with a 30-day TTL,
+// and only refresh rotation or an explicit logout deletes one — so a session
+// that ends any other way (browser closed, cookies cleared, app reinstalled,
+// second device) leaves its row behind for the full TTL and then forever.
+// /metrics only ever counted `expires_at > now()`, which hid that growth rather
+// than stopping it.
+//
+// Uses the database clock (now()), not the process clock, to match the
+// /metrics predicate exactly — a container with a skewed clock must not
+// disagree with the dashboard about which rows are live.
+export async function purgeExpiredSessionsActivity() {
+  const result = await db.execute(sql`delete from sessions where expires_at < now()`);
+  const deleted = result.rowCount ?? 0;
+  console.log(`purgeExpiredSessions: deleted ${deleted} expired session row(s)`);
+  return { deleted };
 }
 
 export async function getMeActivity(input: { userId: string; userRole: "owner" | "tenant" }) {

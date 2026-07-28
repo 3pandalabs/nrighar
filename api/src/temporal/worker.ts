@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities/index.js";
 import { temporalEnv } from "./env.js";
+import { ensureSchedules } from "./schedules.js";
 
 // Temporal's workflow bundler reads workflows/index.ts/.js straight off disk,
 // independent of how this file itself is being run. Match the extension of
@@ -21,6 +22,11 @@ async function run() {
       workflowsPath,
       activities,
     });
+    // Before run(), so a schedule that fires immediately finds a worker about
+    // to poll — and after Worker.create(), so a bundling/registration error
+    // fails the boot without having touched the server's schedule list.
+    await ensureSchedules();
+
     console.log(`nrighar-worker: polling task queue "${temporalEnv.taskQueue}" at ${temporalEnv.address}`);
     await worker.run();
   } finally {
