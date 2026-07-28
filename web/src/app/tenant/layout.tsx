@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { apiGetCurrentUser } from "@/lib/api/client";
-import { Wordmark } from "@/components/Wordmark";
+import { WordmarkName, WordmarkTag } from "@/components/Wordmark";
 import { tenantSignOut } from "./actions";
 
 const NAV_ITEMS = [
@@ -20,9 +20,13 @@ export default async function TenantLayout({ children }: { children: React.React
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-4">
-          <Link href="/tenant" className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            <Wordmark /> <span className="text-sm font-normal text-zinc-500">· tenant</span>
-          </Link>
+          <span className="inline-flex items-center">
+            <Link href="/tenant" className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              <WordmarkName />
+            </Link>
+            <WordmarkTag />
+            <span className="ml-2 text-sm font-normal text-zinc-500">· tenant</span>
+          </span>
           <div className="flex items-center gap-4">
             <span className="hidden text-sm text-zinc-500 sm:inline">{user.email}</span>
             <form action={tenantSignOut}>
