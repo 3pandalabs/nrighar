@@ -17,7 +17,7 @@ export function WordmarkTag() {
         href="https://3pandalabs.com"
         target="_blank"
         rel="noopener noreferrer"
-        className="align-middle font-mono text-[10px] font-normal uppercase tracking-widest text-zinc-500 hover:text-zinc-700 hover:underline dark:text-zinc-400 dark:hover:text-zinc-300"
+        className="align-middle font-mono text-[10px] font-normal tracking-widest text-zinc-500 hover:text-zinc-700 hover:underline dark:text-zinc-400 dark:hover:text-zinc-300"
       >
         by 3PandaLabs
       </a>
