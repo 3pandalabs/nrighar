@@ -4,11 +4,15 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "../env.js";
 
 // R2 is S3-compatible; the AWS SDK v3 client works against it unchanged by
-// pointing endpoint at the account's R2 endpoint and disabling the
-// AWS-specific region-checksum behavior R2 doesn't implement.
+// pointing endpoint at the account's R2 endpoint.
 export const r2 = new S3Client({
   region: "auto",
   endpoint: env.R2_ENDPOINT,
+  // Required for presigned PUTs. Since v3.729 the SDK defaults this to
+  // "WHEN_SUPPORTED", which computes an x-amz-checksum-crc32 at *signing* time
+  // — when there is no body yet — and bakes CRC32("") into the signed query
+  // string. The browser then PUTs real bytes and R2 rejects the mismatch.
+  requestChecksumCalculation: "WHEN_REQUIRED",
   credentials: {
     accessKeyId: env.R2_ACCESS_KEY_ID,
     secretAccessKey: env.R2_SECRET_ACCESS_KEY,
