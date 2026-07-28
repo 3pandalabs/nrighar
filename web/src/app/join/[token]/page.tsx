@@ -1,4 +1,5 @@
 import { publicGet } from "@/lib/api/public";
+import { Wordmark } from "@/components/Wordmark";
 import { IntakeForm } from "./intake-form";
 
 type IntakeLinkData = {
@@ -19,7 +20,9 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 px-6 py-12 dark:bg-black">
-      <p className="mb-8 text-lg font-semibold text-zinc-900 dark:text-zinc-50">RentVault</p>
+      <p className="mb-8 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+        <Wordmark />
+      </p>
       <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-950">
         {!data ? (
           <p className="text-center text-sm text-zinc-500">

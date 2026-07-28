@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { apiGetCurrentUser } from "@/lib/api/client";
+import { Wordmark } from "@/components/Wordmark";
 import { signOut } from "./actions";
 
 const NAV_ITEMS = [
@@ -25,7 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
           <Link href="/dashboard" className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            RentVault
+            <Wordmark />
           </Link>
           <div className="flex items-center gap-4">
             <span className="hidden text-sm text-zinc-500 sm:inline">{user.email}</span>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { apiFetch, apiGetCurrentUser } from "@/lib/api/client";
+import { Wordmark } from "@/components/Wordmark";
 import { ClaimButton } from "./claim-button";
 
 type SharePreview = {
@@ -24,7 +25,9 @@ export default async function ProfileSharePage({
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 px-6 py-12 dark:bg-black">
-      <p className="mb-8 text-lg font-semibold text-zinc-900 dark:text-zinc-50">RentVault</p>
+      <p className="mb-8 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+        <Wordmark />
+      </p>
       <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-950">
         {!user ? (
           <div className="flex flex-col gap-4 text-center">

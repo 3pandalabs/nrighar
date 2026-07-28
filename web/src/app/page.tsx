@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { GradientBackdrop } from "@/components/GradientBackdrop";
+import { Wordmark } from "@/components/Wordmark";
 
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <GradientBackdrop />
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-6">
-        <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">RentVault</span>
+        <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <Wordmark />
+        </span>
         <Link
           href="/login"
           className="rounded-full border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-900 hover:text-white dark:border-zinc-700 dark:text-zinc-50"
