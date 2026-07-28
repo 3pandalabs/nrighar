@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { GradientBackdrop } from "@/components/GradientBackdrop";
+import { Wordmark } from "@/components/Wordmark";
 import { signIn, signUp } from "./actions";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -41,7 +42,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center px-6">
       <GradientBackdrop />
       <Link href="/" className="mb-8 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-        RentVault
+        <Wordmark />
       </Link>
 
       <form
