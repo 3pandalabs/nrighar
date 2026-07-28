@@ -40,6 +40,31 @@ These feed `nrighar-api`'s Coolify environment variables (`coolify-setup.md` ste
 
 The single token's credentials go into both Coolify's Postgres backup configuration (`coolify-setup.md` step 3) and `nrighar-api`'s env — same Access Key ID/Secret for both, only the bucket name differs (`nrighar-backups` vs `nrighar-documents`).
 
-## 4. Verify
+## 4. CORS — required for browser uploads
+
+`web/src/app/dashboard/documents/upload-form.tsx` (and the tenant/join
+equivalents) PUT the file straight from the browser to the presigned R2 URL, so
+the *bucket* needs a CORS policy. A new bucket has none, and the failure looks
+like this — the request never reaches `nrighar-api` at all:
+
+```
+Access to fetch at 'https://nrighar-documents.<account>.r2.cloudflarestorage.com/...'
+from origin 'https://nrighar.3pandalabs.com' has been blocked by CORS policy
+```
+
+The policy lives in `infra/r2-cors.json`, applied with:
+
+```bash
+npx wrangler r2 bucket cors set nrighar-documents --file infra/r2-cors.json
+npx wrangler r2 bucket cors list nrighar-documents   # verify
+```
+
+**Applied 2026-07-28.** Only `nrighar-documents` needs it — `nrighar-backups`
+is written server-side by Coolify, never from a browser. The file uses the
+Cloudflare API shape (`{"rules":[{"allowed":{...}}]}`), not the S3
+`AllowedOrigins` shape; wrangler rejects the latter. Any new frontend origin
+must be added to `origins` or uploads break from that origin only.
+
+## 5. Verify
 
 `aws s3 ls --endpoint-url https://<account id>.r2.cloudflarestorage.com s3://nrighar-documents --profile r2` (configure a throwaway AWS CLI profile with the R2 keys) should return an empty listing with no auth error, confirming the token/bucket/endpoint combination works before wiring it into Coolify or the migration script.
