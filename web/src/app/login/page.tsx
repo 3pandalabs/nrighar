@@ -116,6 +116,16 @@ export default function LoginPage() {
         >
           {mode === "sign-in" ? "Need an account? Sign up" : "Already have an account? Sign in"}
         </button>
+
+        {/* Sign-in only: on the sign-up tab there is no password to recover. */}
+        {mode === "sign-in" && (
+          <Link
+            href="/forgot-password"
+            className="mt-3 block text-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50"
+          >
+            Forgot your password?
+          </Link>
+        )}
       </form>
     </div>
   );

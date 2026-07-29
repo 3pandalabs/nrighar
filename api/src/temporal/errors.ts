@@ -14,6 +14,7 @@ const STATUS_BY_TYPE: Record<string, number> = {
   forbidden: 403,
   tenant_role_required: 403,
   invalid_key: 400,
+  invalid_or_expired_token: 400,
   own_profile: 400,
   revoked: 409,
   already_claimed: 409,
@@ -21,6 +22,10 @@ const STATUS_BY_TYPE: Record<string, number> = {
   expired: 410,
   already_used: 409,
   no_tenant_profile: 422,
+  // The contact form has nowhere to deliver to (mailer unconfigured or the
+  // gateway rejected every message). 503, not 500: the request was fine, the
+  // dependency isn't, and the caller should be told to try again later.
+  mailer_unavailable: 503,
   // tenantIntake.ts predates the snake_case error-code convention used
   // elsewhere — it returns free-text messages as the body's `error` field, so
   // these ApplicationFailure `type`s are the literal strings, not codes.

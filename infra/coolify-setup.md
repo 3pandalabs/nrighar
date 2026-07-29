@@ -94,6 +94,10 @@ Same project → **New Resource → Application** → **Public Repository** (or 
 | `R2_SECRET_ACCESS_KEY` | from `r2-setup.md` | yes |
 | `R2_BUCKET` | `nrighar-documents` | no |
 | `R2_ENDPOINT` | `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com` | no |
+| `MAILER_URL` | shared org gateway base URL (`3pandalabs/mailer`) | no |
+| `MAILER_TOKEN` | this app's gateway token — provision in the mailer Worker as `nrighar` | yes |
+| `WEB_ORIGIN` | `https://nrighar.3pandalabs.com` — what password-reset links point at | no |
+| `SUPPORT_EMAIL` | where Contact-page messages are delivered | no |
 | `PORT` | `3000` (match the Dockerfile's `EXPOSE`) | no |
 
 Deploy. Once healthy, `https://api.nrighar.3pandalabs.com/health` should return `200`.
@@ -168,6 +172,12 @@ Same project → **New Resource → Application** → **Public Repository**:
 | `R2_SECRET_ACCESS_KEY` | same value as `nrighar-api`'s | yes |
 | `R2_BUCKET` | same value as `nrighar-api`'s | no |
 | `R2_ENDPOINT` | same value as `nrighar-api`'s | no |
+| `MAILER_URL` | same value as `nrighar-api`'s | no |
+| `MAILER_TOKEN` | same value as `nrighar-api`'s | yes |
+| `WEB_ORIGIN` | same value as `nrighar-api`'s | no |
+| `SUPPORT_EMAIL` | same value as `nrighar-api`'s | no |
+
+The mailer/WEB_ORIGIN/SUPPORT_EMAIL vars matter **here** more than on the API: password-reset and contact emails are sent from inside activities, which run in this container, not in `nrighar-api`. Unlike the vars below, these four are read lazily and are not validated at import time — a missing `MAILER_TOKEN` will not crash the worker, it will silently stop reset emails from going out (logged as "mailer not configured").
 
 Added 2026-07-23 when route handlers were migrated to run through Temporal
 workflows: activities now do real DB/R2/JWT work (previously this resource

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatInr } from "@/lib/currency";
 import type { ApplicationMessage, OwnApplication, PublicListing } from "@/lib/types";
 import { apiFetch } from "@/lib/api/client";
@@ -164,8 +165,35 @@ export default async function TenantListingsPage({ searchParams }: { searchParam
             return (
               <li
                 key={listing.id}
-                className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950"
+                className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
               >
+                {listing.coverPhotoUrl ? (
+                  <Link href={`/tenant/listings/${listing.id}/photos`} className="relative block">
+                    {/* Plain <img>, not next/image — the src is a presigned R2
+                        URL that expires in ~10 minutes, so it must not be run
+                        through (or cached by) the image optimizer. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={listing.coverPhotoUrl}
+                      alt={listing.title}
+                      className="aspect-4/3 w-full object-cover"
+                    />
+                    {listing.photoCount > 1 && (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-zinc-900/80 px-2.5 py-1 text-xs font-medium text-white">
+                        +{listing.photoCount - 1} more
+                      </span>
+                    )}
+                  </Link>
+                ) : (
+                  // Keeps the cards in a row the same height whether or not the
+                  // owner uploaded anything, rather than letting a photo-less
+                  // listing collapse next to one with a picture.
+                  <div className="flex aspect-4/3 w-full items-center justify-center bg-zinc-100 text-sm text-zinc-400 dark:bg-zinc-900">
+                    No photos yet
+                  </div>
+                )}
+
+                <div className="p-6">
                 <div className="flex items-start justify-between">
                   <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">{listing.title}</h2>
                   <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs capitalize text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
@@ -237,6 +265,7 @@ export default async function TenantListingsPage({ searchParams }: { searchParam
                     </button>
                   </form>
                 )}
+                </div>
               </li>
             );
           })}

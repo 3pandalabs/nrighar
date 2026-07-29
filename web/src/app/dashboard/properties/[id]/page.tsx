@@ -2,8 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api/client";
 import { formatInr } from "@/lib/currency";
-import type { Lease, Property, PropertyListing, RentPayment, Tenant } from "@/lib/types";
-import { addLease, endLease } from "../../actions";
+import type { Lease, Property, PropertyListing, PropertyPhoto, RentPayment, Tenant } from "@/lib/types";
+import { addLease, deletePropertyPhoto, endLease } from "../../actions";
+import { PropertyPhotoUpload } from "./photo-upload";
+
+// Mirrors MAX_PHOTOS_PER_PROPERTY in api/src/temporal/activities/propertyPhotos.ts.
+// The API is the real limit — this only stops the UI offering an upload that
+// would come back 409.
+const MAX_PHOTOS = 20;
 
 export default async function PropertyDetailPage({
   params,
@@ -20,12 +26,17 @@ export default async function PropertyDetailPage({
     throw e;
   }
 
-  const [tenants, allLeases, allPayments, allListings] = await Promise.all([
+  const [tenants, allLeases, allPayments, allListings, photos] = await Promise.all([
     apiFetch("/tenants") as Promise<Tenant[]>,
     apiFetch("/leases") as Promise<Lease[]>,
     apiFetch("/rent-payments") as Promise<RentPayment[]>,
     apiFetch("/listings") as Promise<PropertyListing[]>,
+    apiFetch(`/properties/${id}/photos`) as Promise<PropertyPhoto[]>,
   ]);
+
+  // Every other list on this page is normalised the same way — apiFetch hands
+  // back whatever the API sent, and an empty 204 would otherwise be null here.
+  const propertyPhotos = photos ?? [];
 
   const openListing = (allListings ?? []).find((l) => l.propertyId === id && l.status === "open");
 
@@ -87,6 +98,56 @@ export default async function PropertyDetailPage({
           </Link>
         </div>
       )}
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="mb-1 flex items-baseline justify-between gap-4">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Photos</h2>
+          <span className="text-sm text-zinc-500">
+            {propertyPhotos.length} of {MAX_PHOTOS}
+          </span>
+        </div>
+        <p className="mb-4 text-sm text-zinc-500">
+          The first photo is the one tenants see on the marketplace card. Photos are only visible while this property
+          has an open listing.
+        </p>
+
+        <PropertyPhotoUpload propertyId={property.id} disabled={propertyPhotos.length >= MAX_PHOTOS} />
+
+        {propertyPhotos.length > 0 && (
+          <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {propertyPhotos.map((photo, index) => (
+              <li key={photo.id} className="group relative overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+                {/* Plain <img>, not next/image: the src is a presigned R2 URL
+                    that changes every request and expires in ~10 minutes, so
+                    the image optimizer would cache a URL that's already dead
+                    and thrash its cache on every page view. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photo.url}
+                  alt={photo.caption ?? `${property.nickname} photo ${index + 1}`}
+                  className="aspect-4/3 w-full object-cover"
+                />
+                {index === 0 && (
+                  <span className="absolute left-2 top-2 rounded-full bg-zinc-900/80 px-2 py-0.5 text-xs font-medium text-white">
+                    Cover
+                  </span>
+                )}
+                <form action={deletePropertyPhoto} className="absolute right-2 top-2">
+                  <input type="hidden" name="property_id" value={property.id} />
+                  <input type="hidden" name="photo_id" value={photo.id} />
+                  <button
+                    type="submit"
+                    aria-label="Remove photo"
+                    className="rounded-full bg-zinc-900/80 px-2 py-0.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                  >
+                    Remove
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
         <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">Current lease</h2>

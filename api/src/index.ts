@@ -7,6 +7,8 @@ import { authPlugin } from "./auth/plugin.js";
 import { authRoutes } from "./routes/auth.js";
 import { profileRoutes } from "./routes/profile.js";
 import { propertyRoutes } from "./routes/properties.js";
+import { propertyPhotoRoutes } from "./routes/propertyPhotos.js";
+import { contactRoutes } from "./routes/contact.js";
 import { tenantRoutes } from "./routes/tenants.js";
 import { leaseRoutes } from "./routes/leases.js";
 import { rentPaymentRoutes } from "./routes/rentPayments.js";
@@ -55,6 +57,7 @@ app.setErrorHandler((err: FastifyError & { code?: string }, _req, reply) => {
 await app.register(authRoutes);
 await app.register(profileRoutes);
 await app.register(propertyRoutes);
+await app.register(propertyPhotoRoutes);
 await app.register(tenantRoutes);
 await app.register(leaseRoutes);
 await app.register(rentPaymentRoutes);
@@ -68,6 +71,7 @@ await app.register(storageRoutes);
 await app.register(tenantIntakeRoutes);
 await app.register(listingRoutes);
 await app.register(applicationRoutes);
+await app.register(contactRoutes);
 await app.register(metricsRoutes);
 
 app.listen({ port: env.PORT, host: "0.0.0.0" }).catch((err) => {

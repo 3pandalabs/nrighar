@@ -1,7 +1,8 @@
-import { and, desc, eq, gte, ilike, isNull, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, isNull, lte, or } from "drizzle-orm";
 import { ApplicationFailure } from "@temporalio/common";
 import { db, schema } from "../../db/index.js";
 import { isUniqueViolation } from "../../lib/isUniqueViolation.js";
+import { presignDownload } from "../../plugins/r2.js";
 
 export async function createListing(input: {
   ownerId: string;
@@ -45,6 +46,13 @@ export async function listOwnListings(input: { ownerId: string }) {
 // primary location filter; anyone browsing still can't learn a specific
 // unit's address before applying. Every filter is optional and AND'd
 // together — see routes/listings.ts for the exact semantics of each.
+//
+// coverPhotoUrl is a presigned R2 URL for the property's first photo, or null
+// when it has none. Presigning is a local HMAC with no network round-trip, so
+// doing it for every row on the page is cheap — but the URLs expire (10 min,
+// see plugins/r2.ts), which is why they're minted per request rather than
+// stored. The raw storage key never leaves the server: it starts with the
+// owner's user id.
 export async function browseOpenListings(input: {
   state?: string;
   city?: string;
@@ -54,9 +62,10 @@ export async function browseOpenListings(input: {
   maxRent?: number;
   minLeaseMonths?: number;
 }) {
-  return db
+  const listings = await db
     .select({
       id: schema.propertyListings.id,
+      propertyId: schema.propertyListings.propertyId,
       baseRentAsk: schema.propertyListings.baseRentAsk,
       minLeaseMonths: schema.propertyListings.minLeaseMonths,
       createdAt: schema.propertyListings.createdAt,
@@ -88,6 +97,43 @@ export async function browseOpenListings(input: {
       ),
     )
     .orderBy(desc(schema.propertyListings.createdAt));
+
+  if (listings.length === 0) return [];
+
+  // One extra query for every photo on the page, then the cover is picked in
+  // memory — rather than a correlated subquery or a lateral join per listing.
+  // The result set here is already bounded by the filters above and photos are
+  // capped per property, so this stays a single indexed range scan.
+  const photos = await db
+    .select({
+      propertyId: schema.propertyPhotos.propertyId,
+      storagePath: schema.propertyPhotos.storagePath,
+    })
+    .from(schema.propertyPhotos)
+    .where(inArray(schema.propertyPhotos.propertyId, listings.map((l) => l.propertyId)))
+    .orderBy(asc(schema.propertyPhotos.sortOrder), asc(schema.propertyPhotos.createdAt));
+
+  const coverByProperty = new Map<string, string>();
+  const countByProperty = new Map<string, number>();
+  for (const photo of photos) {
+    // First row per property wins — the ORDER BY above already put the lowest
+    // sortOrder first.
+    if (!coverByProperty.has(photo.propertyId)) coverByProperty.set(photo.propertyId, photo.storagePath);
+    countByProperty.set(photo.propertyId, (countByProperty.get(photo.propertyId) ?? 0) + 1);
+  }
+
+  return Promise.all(
+    listings.map(async ({ propertyId, ...listing }) => {
+      const coverKey = coverByProperty.get(propertyId);
+      return {
+        ...listing,
+        // photoCount lets the client show a "+3 more" affordance without
+        // fetching the whole gallery it may never open.
+        photoCount: countByProperty.get(propertyId) ?? 0,
+        coverPhotoUrl: coverKey ? await presignDownload(coverKey) : null,
+      };
+    }),
+  );
 }
 
 export async function closeListing(input: { id: string; ownerId: string }) {

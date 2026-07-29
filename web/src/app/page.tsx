@@ -10,12 +10,20 @@ export default function Home() {
         <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           <Wordmark />
         </span>
-        <Link
-          href="/login"
-          className="rounded-full border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-900 hover:text-white dark:border-zinc-700 dark:text-zinc-50"
-        >
-          Sign in
-        </Link>
+        <span className="flex items-center gap-5">
+          <Link
+            href="/contact"
+            className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+          >
+            Contact us
+          </Link>
+          <Link
+            href="/login"
+            className="rounded-full border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-900 hover:text-white dark:border-zinc-700 dark:text-zinc-50"
+          >
+            Sign in
+          </Link>
+        </span>
       </header>
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-8 px-6 py-24 text-center">

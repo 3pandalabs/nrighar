@@ -43,3 +43,7 @@ supabase/.temp
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# cloudflare build output (opennextjs-cloudflare / wrangler)
+/.open-next/
+/.wrangler/

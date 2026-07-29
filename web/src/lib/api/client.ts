@@ -132,6 +132,36 @@ export async function apiLogin(email: string, password: string): Promise<ApiUser
   return data.user;
 }
 
+// ---- Unauthenticated flows ----
+// No tokens involved in either direction: the caller has lost their password,
+// or has no account at all. Deliberately not routed through apiFetch, which
+// requires an access token and would 401 before the request left the Worker.
+
+export async function apiRequestPasswordReset(email: string): Promise<void> {
+  const res = await rawFetch("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  await parseOrThrow(res);
+}
+
+export async function apiResetPassword(token: string, password: string): Promise<void> {
+  const res = await rawFetch("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+  await parseOrThrow(res);
+}
+
+export async function apiSendContactMessage(input: {
+  name: string;
+  email: string;
+  message: string;
+}): Promise<void> {
+  const res = await rawFetch("/contact", { method: "POST", body: JSON.stringify(input) });
+  await parseOrThrow(res);
+}
+
 export async function apiLogout(): Promise<void> {
   const { refreshToken } = await getTokens();
   if (refreshToken) {

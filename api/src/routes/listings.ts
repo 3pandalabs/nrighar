@@ -63,4 +63,13 @@ export async function listingRoutes(app: FastifyInstance) {
       },
     ]);
   });
+
+  // Full photo gallery for one listing. Tenant-only, and the activity serves
+  // photos only while the listing is still open — the browse response already
+  // carries a single presigned cover photo per listing, so this is the
+  // "see all photos" step, not the list view's data source.
+  app.get("/listings/:id/photos", { preHandler: [requireAuth, requireTenantRole] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    return sendWorkflow(reply, "listListingPhotosWorkflow", [{ listingId: id }]);
+  });
 }
