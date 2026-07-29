@@ -41,6 +41,26 @@ export const sessions = pgTable(
   (t) => [index("idx_sessions_user").on(t.userId)],
 );
 
+// Single-use password-reset tokens. Same id.secret shape as a refresh token —
+// the id finds the row, the secret is verified against the bcrypt hash — so
+// the database never holds anything that could reset an account on its own.
+// usedAt is a tombstone rather than a delete: a burnt row must keep answering
+// "already used" for a forwarded link, not fall back to "no such token".
+export const passwordResetTokens = pgTable(
+  "password_reset_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("idx_password_reset_user").on(t.userId)],
+);
+
 export const profiles = pgTable(
   "profiles",
   {
@@ -86,6 +106,43 @@ export const properties = pgTable(
       sql`${t.propertyType} in ('apartment','independent_house','villa','plot','commercial')`,
     ),
     check("properties_bedrooms_check", sql`${t.bedrooms} is null or ${t.bedrooms} > 0`),
+  ],
+);
+
+// Photos of a property, shown on the marketplace listing card and gallery.
+//
+// ownerId is denormalised from properties.owner_id on purpose: every authz
+// check in this codebase scopes by the caller's own user id, and the R2 key
+// prefix is the owner's user id too (see plugins/r2.ts keyOwnerUserId), so
+// carrying it here keeps both checks a single-row lookup instead of a join.
+//
+// Unlike `documents`, these are the one class of object in this app meant to
+// be seen by someone other than the uploader — but only while the property has
+// an OPEN listing, and only ever through a short-lived presigned URL. The
+// bucket stays private; nothing here is served publicly.
+export const propertyPhotos = pgTable(
+  "property_photos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    storagePath: text("storage_path").notNull(),
+    caption: text("caption"),
+    // Lowest sortOrder is the cover photo shown on the browse card. Ties break
+    // by createdAt so the ordering is total and stable even if two rows share
+    // a value (they can: nothing enforces uniqueness, deliberately — a
+    // reorder that had to be globally consistent would need a transaction per
+    // drag, and the cost of two photos sharing a slot is cosmetic).
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_property_photos_property").on(t.propertyId, t.sortOrder),
+    index("idx_property_photos_owner").on(t.ownerId),
   ],
 );
 

@@ -237,6 +237,45 @@ export async function recordDocument(input: {
   await apiFetch("/documents", { method: "POST", body: JSON.stringify(input) });
 }
 
+// Photos land under the same owner-prefixed key space as documents (see
+// getUploadUrl), inside a per-property folder so an object's purpose is
+// readable from its key alone when someone is staring at the R2 bucket.
+export async function getPhotoUploadUrl(
+  propertyId: string,
+  filename: string,
+): Promise<{ key: string; url: string }> {
+  const user = await requireUser();
+  const key = `${user.id}/properties/${propertyId}/${randomUUID()}-${filename}`;
+  const result = await apiFetch("/storage/presign-upload", {
+    method: "POST",
+    body: JSON.stringify({ key }),
+  });
+  return { key, url: result.url };
+}
+
+export async function recordPropertyPhoto(input: {
+  propertyId: string;
+  storagePath: string;
+  caption?: string;
+}) {
+  await requireUser();
+  await apiFetch(`/properties/${input.propertyId}/photos`, {
+    method: "POST",
+    body: JSON.stringify({ storagePath: input.storagePath, caption: input.caption }),
+  });
+  revalidatePath(`/dashboard/properties/${input.propertyId}`);
+}
+
+export async function deletePropertyPhoto(formData: FormData) {
+  await requireUser();
+
+  const propertyId = String(formData.get("property_id") ?? "");
+  const photoId = String(formData.get("photo_id") ?? "");
+  await apiFetch(`/properties/${propertyId}/photos/${photoId}`, { method: "DELETE" });
+
+  revalidatePath(`/dashboard/properties/${propertyId}`);
+}
+
 export async function getDownloadUrl(key: string): Promise<string | null> {
   await requireUser();
   try {

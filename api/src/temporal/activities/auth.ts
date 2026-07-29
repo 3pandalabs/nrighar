@@ -1,8 +1,11 @@
+import { randomBytes } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { ApplicationFailure } from "@temporalio/common";
 import { db, pool, schema } from "../../db/index.js";
 import { hashPassword, verifyPassword } from "../../auth/password.js";
 import { generateRefreshSecret, parseRefreshToken, REFRESH_TOKEN_TTL_MS, signAccessToken } from "../../auth/jwt.js";
+import { sendMail } from "../../lib/mailer.js";
+import { buildPasswordResetEmail } from "../../lib/emails/passwordReset.js";
 
 async function issueSession(userId: string, role: "owner" | "tenant") {
   const accessToken = signAccessToken({ sub: userId, role });
@@ -114,6 +117,88 @@ export async function purgeExpiredSessionsActivity() {
   const deleted = result.rowCount ?? 0;
   console.log(`purgeExpiredSessions: deleted ${deleted} expired session row(s)`);
   return { deleted };
+}
+
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Both reset activities answer the same way whether or not the account exists.
+// A "no such email" here would be an account enumeration oracle on an
+// unauthenticated endpoint — and this app's user list is NRI landlords, which
+// is exactly the population a scammer would want enumerated.
+//
+// Email matching is a plain eq() on the stored address, deliberately matching
+// loginActivity rather than lower-casing. Signup stores whatever case the user
+// typed, so lower-casing here would fail to find accounts that can log in
+// perfectly well — the reset path must cover exactly the set of accounts the
+// login path does, no more and no less.
+export async function requestPasswordResetActivity(input: { email: string }) {
+  const [user] = await db
+    .select({ id: schema.users.id, email: schema.users.email })
+    .from(schema.users)
+    .where(eq(schema.users.email, input.email));
+
+  if (user) {
+    // Invalidate any outstanding token first, so asking twice doesn't leave two
+    // live links — the newest email is the only one that works.
+    await db.delete(schema.passwordResetTokens).where(eq(schema.passwordResetTokens.userId, user.id));
+
+    const secret = randomBytes(32).toString("base64url");
+    const [row] = await db
+      .insert(schema.passwordResetTokens)
+      .values({
+        userId: user.id,
+        tokenHash: await hashPassword(secret),
+        expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+      })
+      .returning({ id: schema.passwordResetTokens.id });
+
+    await sendMail(
+      [buildPasswordResetEmail(user.email, `${row.id}.${secret}`, RESET_TOKEN_TTL_MS / 60_000)],
+      (msg) => console.log(`requestPasswordReset[${user.id}]: ${msg}`),
+    );
+  }
+
+  // Returns nothing either way — including when the mailer is unconfigured.
+  // Whether an email went out is not something an unauthenticated caller may
+  // learn, so it must not reach the response.
+}
+
+export async function resetPasswordActivity(input: { token: string; password: string }) {
+  const [id, secret] = input.token.split(".");
+  const invalid = () => ApplicationFailure.create({ type: "invalid_or_expired_token", nonRetryable: true });
+  if (!id || !secret || !UUID_RE.test(id)) throw invalid();
+
+  const [row] = await db
+    .select()
+    .from(schema.passwordResetTokens)
+    .where(eq(schema.passwordResetTokens.id, id));
+
+  if (
+    !row ||
+    row.usedAt !== null ||
+    row.expiresAt.getTime() < Date.now() ||
+    !(await verifyPassword(secret, row.tokenHash))
+  ) {
+    throw invalid();
+  }
+
+  await db
+    .update(schema.users)
+    .set({ passwordHash: await hashPassword(input.password) })
+    .where(eq(schema.users.id, row.userId));
+
+  // Single-use: burn the token before returning, so a forwarded email or a link
+  // left in browser history can't reset the password a second time.
+  await db
+    .update(schema.passwordResetTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(schema.passwordResetTokens.id, row.id));
+
+  // Every existing session dies with the old password. If the reset was the
+  // real owner recovering a compromised account, this is what actually evicts
+  // whoever was in it.
+  await db.delete(schema.sessions).where(eq(schema.sessions.userId, row.userId));
 }
 
 export async function getMeActivity(input: { userId: string; userRole: "owner" | "tenant" }) {

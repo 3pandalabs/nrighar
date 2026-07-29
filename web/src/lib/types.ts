@@ -141,6 +141,33 @@ export type PublicListing = {
   pincode: string;
   propertyType: Property["propertyType"];
   bedrooms: number | null;
+  // Presigned R2 URL, minted per request and valid ~10 minutes — render it,
+  // don't cache it. null when the owner hasn't uploaded any photos.
+  coverPhotoUrl: string | null;
+  photoCount: number;
+};
+
+// Owner-side photo row, from GET /properties/:id/photos.
+export type PropertyPhoto = {
+  id: string;
+  propertyId: string;
+  ownerId: string;
+  storagePath: string;
+  caption: string | null;
+  sortOrder: number;
+  createdAt: string;
+  url: string;
+};
+
+// Tenant-side view of the same photo, from GET /listings/:id/photos. Carries
+// no storagePath — the raw R2 key starts with the owner's user id and is never
+// exposed to a tenant.
+export type ListingPhoto = {
+  id: string;
+  caption: string | null;
+  sortOrder: number;
+  createdAt: string;
+  url: string;
 };
 
 export type PropertyApplication = {
