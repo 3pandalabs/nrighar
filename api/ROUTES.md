@@ -161,6 +161,25 @@ Still no CAPTCHA — Turnstile is the obvious next step if this ever attracts ta
 
 ## Email (shared org gateway)
 
+> **KNOWN GAP, DEFERRED 2026-07-29 — no RentVault email actually sends in production.**
+> The gateway's only verified Resend sending domain is `rsvpvault.3pandalabs.com`
+> (the free plan verifies exactly one), and `nrighar` has no address on it, so
+> every send returns `no_sender_configured` (503). Password-reset mail and the
+> Contact relay are therefore dead in production today — the code paths are
+> correct and tested, they just have nowhere to send from.
+>
+> `/auth/forgot-password` still answers `204` regardless, by design: it must not
+> reveal whether an address has an account, and it deliberately degrades rather
+> than failing when the mailer is unavailable. So this gap is **silent** from
+> the outside — the endpoint looks healthy and no mail arrives.
+>
+> Fixing it is a domain decision, not a config tweak. Either give `nrighar` an
+> address on `rsvpvault.3pandalabs.com` (accepting that RentVault password
+> resets would arrive from a domain named after a different product — the exact
+> signature of a phishing attempt), or verify a neutral domain and cut both apps
+> over. On the free plan adding a domain **evicts** the current one, so that
+> cutover has an outage window if sequenced wrong: verify first, switch second.
+
 All outbound mail goes through the `3pandalabs/mailer` Cloudflare Worker (`POST ${MAILER_URL}/send`, bearer `MAILER_TOKEN`, `app: "nrighar"`), never to a provider directly — so no Cloudflare API token exists anywhere in this app's environment. Templates live in `src/lib/emails/`; the gateway is a dumb transport that renders nothing.
 
 `MAILER_URL`/`MAILER_TOKEN` are deliberately **not** required at boot, same as `METRICS_TOKEN`: this app ran without any email at all until password reset landed, and a missing mailer secret must degrade rather than refuse to start and take rent collection down with it.
