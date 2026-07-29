@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 // INTERNAL_API_URL (server-only, not NEXT_PUBLIC_-prefixed so it's never
 // inlined into client bundles) points at a DNS-only hostname for this same
@@ -153,12 +153,27 @@ export async function apiResetPassword(token: string, password: string): Promise
   await parseOrThrow(res);
 }
 
+// The API rate-limits /contact per caller, but it can't identify the caller on
+// its own: this runs in a Server Action, so the request it makes to the API
+// comes from the Worker's egress address over INTERNAL_API_URL (DNS-only, never
+// through Cloudflare's proxy — see the note on API_URL above). Every visitor
+// would look like the same client and share one budget. This hop is the only
+// place the real address is known, so forward it. The API treats the header as
+// a hint for de-duplicating honest traffic, not as a trusted identity — see
+// api/src/plugins/rateLimit.ts.
 export async function apiSendContactMessage(input: {
   name: string;
   email: string;
   message: string;
 }): Promise<void> {
-  const res = await rawFetch("/contact", { method: "POST", body: JSON.stringify(input) });
+  const h = await headers();
+  const clientIp = h.get("cf-connecting-ip") ?? h.get("x-forwarded-for")?.split(",")[0]?.trim();
+
+  const res = await rawFetch("/contact", {
+    method: "POST",
+    body: JSON.stringify(input),
+    headers: clientIp ? { "X-Client-IP": clientIp } : {},
+  });
   await parseOrThrow(res);
 }
 

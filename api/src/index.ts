@@ -46,9 +46,15 @@ app.addHook("onResponse", async (req) => {
 // Postgres unique_violation (e.g. the one-active-lease-per-property partial
 // index, or a race on any other unique constraint) should surface as a clean
 // 409, not an unhandled 500.
-app.setErrorHandler((err: FastifyError & { code?: string }, _req, reply) => {
+app.setErrorHandler((err: FastifyError & { code?: string; publicCode?: string }, _req, reply) => {
   if (err.code === "23505") {
     return reply.code(409).send({ error: "conflict" });
+  }
+  // Errors that deliberately carry a caller-facing code (rate limiting, so far)
+  // are expected traffic, not faults: surface the code as-is and don't log them
+  // at error level, or a spam burst becomes a wall of fake 500s in the logs.
+  if (err.publicCode) {
+    return reply.code(err.statusCode ?? 400).send({ error: err.publicCode });
   }
   app.log.error(err);
   return reply.code(err.statusCode ?? 500).send({ error: "internal_error" });
