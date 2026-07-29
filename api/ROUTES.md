@@ -144,13 +144,20 @@ Property photos use the same two-step upload, under `<userId>/properties/<proper
 
 | Method | Path | Auth | Body | Response |
 |---|---|---|---|---|
-| POST | `/contact` | **none** | `{ name, email, message }` (≤120 / ≤320 / ≤4000 chars) | `204`, or `503 { error: 'mailer_unavailable' }` |
+| POST | `/contact` | **none** | `{ name, email, message }` (≤120 / ≤320 / ≤4000 chars) | `204`, `429 { error: 'rate_limited' }`, or `503 { error: 'mailer_unavailable' }` |
 
 Relays a Contact-page message to `SUPPORT_EMAIL` through the shared org mailer gateway. Nothing is persisted — the mail is the record, and a table of unauthenticated free text would be one more store to secure and purge for no gain.
 
 Unlike `/auth/forgot-password`, an unconfigured/unreachable mailer here is **not** swallowed: the message would simply vanish, and telling the sender "sent" when nobody will ever read it is the worse failure.
 
-**No rate limit or CAPTCHA yet** — this is a spam relay into the support inbox for anyone who finds it. It only ever mails the fixed `SUPPORT_EMAIL` (never a caller-supplied address), so the blast radius is one inbox, but a limiter belongs here before the page gets real traffic.
+**Rate limited, two layers** (`src/plugins/rateLimit.ts`), both in-process and therefore per-container — they'd need a shared store if `nrighar-api` is ever scaled past one replica:
+
+- **5 per hour per caller.** The caller is identified by the `X-Client-IP` header, falling back to `req.ip`. The web frontend must send that header, because it calls this route from a Server Action over `INTERNAL_API_URL` — a DNS-only hostname that never traverses Cloudflare's proxy, so there is no `CF-Connecting-IP` and `req.ip` is the Worker's egress address, identical for every visitor. Without the header the whole site shares one budget. The header is a hint for separating honest traffic, **not** a trusted identity: the origin firewall admits all Cloudflare IP ranges, so anyone with a Worker can reach `api-internal` and rotate the value per request.
+- **40 per hour globally**, counted across every caller and key. This is the layer that actually bounds the damage, since layer 1 is spoofable. Rejections don't consume from this budget, so a caller who is over their own limit can't drain the shared one.
+
+Accepted trade-off: a determined sender can burn the global budget and make the contact form unavailable to real users until the window rolls over. For a route whose failure mode is flooding the single support inbox, capping the flood beats keeping the form up.
+
+Still no CAPTCHA — Turnstile is the obvious next step if this ever attracts targeted abuse rather than incidental spam.
 
 ## Email (shared org gateway)
 
