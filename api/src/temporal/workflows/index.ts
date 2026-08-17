@@ -18,3 +18,6 @@ export * from "./applications.js";
 export * from "./kyc.js";
 export * from "./propertyPhotos.js";
 export * from "./contact.js";
+export * from "./identity.js";
+export * from "./leaseAgreements.js";
+export * from "./utilities.js";

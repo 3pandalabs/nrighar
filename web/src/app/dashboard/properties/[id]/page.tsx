@@ -4,6 +4,7 @@ import { apiFetch, ApiError } from "@/lib/api/client";
 import { formatInr } from "@/lib/currency";
 import type { Lease, Property, PropertyListing, PropertyPhoto, RentPayment, Tenant } from "@/lib/types";
 import { addLease, deletePropertyPhoto, endLease } from "../../actions";
+import { AgreementSection } from "./agreement-section";
 import { PropertyPhotoUpload } from "./photo-upload";
 
 // Mirrors MAX_PHOTOS_PER_PROPERTY in api/src/temporal/activities/propertyPhotos.ts.
@@ -228,6 +229,10 @@ export default async function PropertyDetailPage({
           </div>
         )}
       </section>
+
+      {/* Only for an active lease: an agreement is generated from live lease
+          terms, so there's nothing coherent to render against an ended one. */}
+      {activeLease && <AgreementSection leaseId={activeLease.id} propertyId={property.id} />}
 
       {pastLeases.length > 0 && (
         <section>

@@ -22,6 +22,24 @@ const STATUS_BY_TYPE: Record<string, number> = {
   expired: 410,
   already_used: 409,
   no_tenant_profile: 422,
+  // Identity KYC / e-Sign / BBPS. The 4xx codes are all caller-fixable; the
+  // 429s and 503s are the cost controls and the provider seams talking.
+  invalid_pan: 400,
+  invalid_aadhaar: 400,
+  invalid_role: 400,
+  otp_session_unusable: 409,
+  otp_verification_failed: 400,
+  // Both cost guards. 429 rather than 402/403: the caller is not forbidden,
+  // they are asking too often or too much this month, and retrying later is
+  // the right advice.
+  provider_cooldown: 429,
+  provider_quota_exceeded: 429,
+  // Configuration gaps, deliberately distinguishable from a provider outage so
+  // ops can tell "we never set this up" from "they're down".
+  identity_not_configured: 503,
+  esign_not_configured: 503,
+  bbps_not_configured: 503,
+  provider_unavailable: 503,
   // The contact form has nowhere to deliver to (mailer unconfigured or the
   // gateway rejected every message). 503, not 500: the request was fine, the
   // dependency isn't, and the caller should be told to try again later.

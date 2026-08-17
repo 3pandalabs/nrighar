@@ -6,6 +6,7 @@ import { tenantSignOut } from "./actions";
 
 const NAV_ITEMS = [
   { href: "/tenant", label: "My profile" },
+  { href: "/tenant/verify", label: "Verify ID" },
   { href: "/tenant/listings", label: "Browse listings" },
 ];
 
