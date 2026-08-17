@@ -229,3 +229,132 @@ export type DocumentRow = {
   storagePath: string;
   createdAt: string;
 };
+
+// ---------------------------------------------------------------------------
+// Identity KYC (PAN / Aadhaar OTP) — api/ROUTES.md "Identity KYC"
+// ---------------------------------------------------------------------------
+
+// Note there is no full document number anywhere in this type, by design: the
+// API stores only a masked form and a keyed fingerprint, so there is nothing
+// sensitive for the browser to receive or for us to accidentally cache.
+export type IdentityVerification = {
+  id: string;
+  kind: "pan" | "aadhaar";
+  tenantId: string | null;
+  tenantUserId: string | null;
+  ownerId: string | null;
+  numberMasked: string;
+  status: "pending" | "verified" | "name_mismatch" | "not_found" | "failed" | "not_configured";
+  provider: string | null;
+  verifiedName: string | null;
+  expectedName: string | null;
+  nameMatchScore: string | null;
+  errorMessage: string | null;
+  verifiedAt: string | null;
+  createdAt: string;
+  // Only present on the response to a fresh check — true means an earlier
+  // result inside its freshness window was reused instead of paying again.
+  cached?: boolean;
+};
+
+export type AadhaarOtpStart = {
+  alreadyVerified: boolean;
+  // true when a live session was handed back rather than a new OTP being sent.
+  reused: boolean;
+  sessionId: string | null;
+  numberMasked: string;
+  expiresAt: string | null;
+};
+
+// ---------------------------------------------------------------------------
+// e-Sign lease agreements — api/ROUTES.md "e-Sign lease agreements"
+// ---------------------------------------------------------------------------
+
+export type LeaseAgreementSigner = {
+  id: string;
+  agreementId: string;
+  role: "landlord" | "tenant";
+  signOrder: number;
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  status: "pending" | "notified" | "signed" | "declined";
+  signUrl: string | null;
+  signUrlExpiresAt: string | null;
+  notifiedAt: string | null;
+  signedAt: string | null;
+  createdAt: string;
+};
+
+export type LeaseAgreement = {
+  id: string;
+  leaseId: string;
+  ownerId: string;
+  status: "draft" | "sent" | "partially_signed" | "completed" | "declined" | "expired" | "failed";
+  provider: string | null;
+  providerRef: string | null;
+  unsignedStoragePath: string;
+  signedStoragePath: string | null;
+  contentHash: string;
+  sentAt: string | null;
+  completedAt: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+};
+
+export type LeaseAgreementResponse = {
+  agreement: LeaseAgreement;
+  signers: LeaseAgreementSigner[];
+  // Presigned R2 URL for whichever PDF exists — signed copy if there is one,
+  // else the draft. Valid ~10 minutes; render it, don't store it.
+  downloadUrl: string;
+};
+
+// ---------------------------------------------------------------------------
+// Utility bills (BBPS) — api/ROUTES.md "Utility bills"
+// ---------------------------------------------------------------------------
+
+export type UtilityCategory =
+  | "electricity"
+  | "water"
+  | "gas"
+  | "broadband"
+  | "dth"
+  | "mobile"
+  | "maintenance"
+  | "other";
+
+export type UtilityAccount = {
+  id: string;
+  propertyId: string;
+  ownerId: string;
+  category: UtilityCategory;
+  billerId: string;
+  billerName: string | null;
+  // Masked by the API (****1234) — the full consumer number is never returned.
+  consumerNumber: string;
+  nickname: string | null;
+  active: boolean;
+  lastFetchedAt: string | null;
+  nextFetchAfter: string | null;
+  consecutiveFailures: number;
+  lastErrorMessage: string | null;
+  createdAt: string;
+};
+
+export type UtilityBill = {
+  id: string;
+  accountId: string;
+  ownerId: string;
+  billPeriodKey: string;
+  billNumber: string | null;
+  billDate: string | null;
+  dueDate: string | null;
+  amountDue: string;
+  status: "PAID" | "UNPAID" | "UNKNOWN";
+  provider: string | null;
+  fetchedAt: string;
+  lastAlertedAt: string | null;
+  alertCount: number;
+  createdAt: string;
+};

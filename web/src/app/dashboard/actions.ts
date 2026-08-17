@@ -4,6 +4,8 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { apiFetch, apiGetCurrentUser, apiLogout } from "@/lib/api/client";
+import { describeApiError, type ActionResult } from "@/lib/apiErrors";
+import type { IdentityVerification } from "@/lib/types";
 
 async function requireUser() {
   const user = await apiGetCurrentUser();
@@ -346,4 +348,136 @@ export async function sendApplicationMessage(formData: FormData) {
   await apiFetch(`/applications/${applicationId}/messages`, { method: "POST", body: JSON.stringify({ body }) });
 
   revalidatePath(`/dashboard/listings/${listingId}`);
+}
+
+// --- Identity verification (owner-initiated PAN check on a tenant) ----------
+//
+// Returns an ActionResult rather than throwing — see the same note in
+// tenant/actions.ts. The distinction that matters here is between "this PAN
+// doesn't belong to this tenant" (a real finding the landlord should see) and
+// "we couldn't check" (our problem, and not something to hold against the
+// tenant).
+
+export async function verifyTenantPan(
+  tenantId: string,
+  panNumber: string
+): Promise<ActionResult<IdentityVerification>> {
+  await requireUser();
+  try {
+    const result = (await apiFetch(`/tenants/${tenantId}/identity/pan`, {
+      method: "POST",
+      body: JSON.stringify({ panNumber }),
+    })) as IdentityVerification;
+    revalidatePath(`/dashboard/tenants/${tenantId}`);
+    return { ok: true, data: result };
+  } catch (err) {
+    return { ok: false, error: describeApiError(err) };
+  }
+}
+
+// --- Lease agreements (e-Sign) ---------------------------------------------
+
+// Free: renders the PDF and stores a draft. Nothing external is called, so
+// this is safe to let throw like the rest of the dashboard actions.
+export async function createLeaseAgreement(formData: FormData) {
+  await requireUser();
+
+  const leaseId = String(formData.get("lease_id") ?? "");
+  const propertyId = String(formData.get("property_id") ?? "");
+
+  await apiFetch(`/leases/${leaseId}/agreement`, { method: "POST" });
+
+  revalidatePath(`/dashboard/properties/${propertyId}`);
+}
+
+// Billable: creates the e-Sign transaction. Returns a result so a quota or
+// configuration failure can be shown next to the button rather than replacing
+// the page — the landlord has usually just read the draft and needs to know
+// whether it went out.
+export async function sendLeaseAgreement(
+  agreementId: string,
+  propertyId: string
+): Promise<ActionResult<{ signUrl: string | null }>> {
+  await requireUser();
+  try {
+    const result = (await apiFetch(`/lease-agreements/${agreementId}/send`, { method: "POST" })) as {
+      signUrl: string | null;
+    };
+    revalidatePath(`/dashboard/properties/${propertyId}`);
+    return { ok: true, data: { signUrl: result.signUrl } };
+  } catch (err) {
+    return { ok: false, error: describeApiError(err) };
+  }
+}
+
+export async function getSigningUrl(
+  agreementId: string,
+  role: "landlord" | "tenant"
+): Promise<ActionResult<{ signUrl: string | null }>> {
+  await requireUser();
+  try {
+    const result = (await apiFetch(`/lease-agreements/${agreementId}/sign-url/${role}`)) as {
+      signUrl: string | null;
+    };
+    return { ok: true, data: { signUrl: result.signUrl } };
+  } catch (err) {
+    return { ok: false, error: describeApiError(err) };
+  }
+}
+
+// --- Utility accounts (BBPS) -----------------------------------------------
+
+export async function addUtilityAccount(formData: FormData) {
+  await requireUser();
+
+  await apiFetch("/utility-accounts", {
+    method: "POST",
+    body: JSON.stringify({
+      propertyId: String(formData.get("property_id") ?? ""),
+      category: String(formData.get("category") ?? "electricity"),
+      billerId: String(formData.get("biller_id") ?? "").trim(),
+      billerName: String(formData.get("biller_name") ?? "").trim() || undefined,
+      consumerNumber: String(formData.get("consumer_number") ?? "").trim(),
+      nickname: String(formData.get("nickname") ?? "").trim() || undefined,
+    }),
+  });
+
+  revalidatePath("/dashboard/utilities");
+}
+
+export async function setUtilityAccountActive(formData: FormData) {
+  await requireUser();
+
+  const id = String(formData.get("id") ?? "");
+  await apiFetch(`/utility-accounts/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ active: String(formData.get("active") ?? "") === "true" }),
+  });
+
+  revalidatePath("/dashboard/utilities");
+}
+
+export async function deleteUtilityAccount(formData: FormData) {
+  await requireUser();
+
+  const id = String(formData.get("id") ?? "");
+  await apiFetch(`/utility-accounts/${id}`, { method: "DELETE" });
+
+  revalidatePath("/dashboard/utilities");
+}
+
+// Billable, and the only manual path to a bill fetch. The API applies the same
+// monthly cap and 6-hour per-account cooldown it applies to the cron, so this
+// can't be used to poll around them — the result just says so.
+export async function fetchUtilityBillNow(accountId: string): Promise<ActionResult<{ kind: string }>> {
+  await requireUser();
+  try {
+    const result = (await apiFetch(`/utility-accounts/${accountId}/fetch`, { method: "POST" })) as {
+      kind: string;
+    };
+    revalidatePath("/dashboard/utilities");
+    return { ok: true, data: result };
+  } catch (err) {
+    return { ok: false, error: describeApiError(err) };
+  }
 }
