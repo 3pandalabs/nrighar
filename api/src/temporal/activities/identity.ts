@@ -1,6 +1,7 @@
 import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import { ApplicationFailure } from "@temporalio/common";
 import { db, schema } from "../../db/index.js";
+import { hasClaimedShare } from "../../plugins/authz.js";
 import { providerEnv } from "../../lib/providers/env.js";
 import { guardedCall } from "../../lib/providers/costGuard.js";
 import { fingerprint } from "../../lib/providers/fingerprint.js";
@@ -186,7 +187,6 @@ export async function callPanVerification(input: VerifyPanActivityInput) {
   try {
     const result = await guardedCall({
       provider: provider.name,
-      family: "identity",
       operation: "identity.pan",
       subjectFingerprint: fp,
       ownerId: input.subject.ownerId,
@@ -250,7 +250,6 @@ export async function callAadhaarOtp(input: SendAadhaarOtpActivityInput) {
   try {
     const init = await guardedCall({
       provider: provider.name,
-      family: "identity",
       operation: "identity.aadhaar_otp",
       subjectFingerprint: fp,
       ownerId: input.subject.ownerId,
@@ -330,7 +329,6 @@ export async function callAadhaarOtpVerify(input: {
   try {
     const result = await guardedCall({
       provider: provider.name,
-      family: "identity",
       operation: "identity.aadhaar_verify",
       subjectFingerprint: input.numberFingerprint,
       ownerId: input.ownerId,
@@ -374,27 +372,40 @@ export async function listIdentityVerificationsForTenantUser(input: { tenantUser
     .orderBy(desc(schema.identityVerifications.createdAt));
 }
 
+// An owner sees two things here: checks they commissioned against their own
+// tenant record (tenantId set), and checks the linked tenant-user ran on
+// themselves (tenantUserId set, tenantId null) — but the second kind only
+// while that tenant is actually sharing their profile.
+//
+// The share gate is hasClaimedShare(), the same predicate every other
+// cross-owner read in this app uses (tenantShared.ts, storage.ts), rather than
+// a condition re-derived from tenants.tenant_user_id being non-null. That
+// distinction matters: the link column survives a revoke, so trusting it would
+// leave a revoked tenant's Aadhaar result visible to a landlord they had cut
+// off. Revocation has to cut this read on the next request like it cuts the
+// others.
 export async function listIdentityVerificationsForTenant(input: { tenantId: string; ownerId: string }) {
   const [tenant] = await db
-    .select({ id: schema.tenants.id })
+    .select({ id: schema.tenants.id, tenantUserId: schema.tenants.tenantUserId })
     .from(schema.tenants)
     .where(and(eq(schema.tenants.id, input.tenantId), eq(schema.tenants.ownerId, input.ownerId)));
   if (!tenant) throw ApplicationFailure.create({ type: "not_found", nonRetryable: true });
+
+  const linkedUserId =
+    tenant.tenantUserId && (await hasClaimedShare(tenant.tenantUserId, input.ownerId))
+      ? tenant.tenantUserId
+      : null;
 
   return db
     .select()
     .from(schema.identityVerifications)
     .where(
-      // An owner sees checks they commissioned on their own tenant record, and
-      // checks the linked tenant-user ran on themselves and thereby shared —
-      // never a verification belonging to some other landlord's record.
-      or(
-        eq(schema.identityVerifications.tenantId, input.tenantId),
-        and(
-          eq(schema.identityVerifications.ownerId, input.ownerId),
-          eq(schema.identityVerifications.tenantId, input.tenantId),
-        ),
-      ),
+      linkedUserId
+        ? or(
+            eq(schema.identityVerifications.tenantId, input.tenantId),
+            eq(schema.identityVerifications.tenantUserId, linkedUserId),
+          )
+        : eq(schema.identityVerifications.tenantId, input.tenantId),
     )
     .orderBy(desc(schema.identityVerifications.createdAt));
 }

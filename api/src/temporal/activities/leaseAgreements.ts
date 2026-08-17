@@ -176,7 +176,6 @@ export async function sendAgreementForSignature(input: { agreementId: string; ow
   try {
     const transaction = await guardedCall({
       provider: provider.name,
-      family: "esign",
       operation: "esign.create",
       ownerId: input.ownerId,
       // No per-subject cooldown: two agreements for the same lease within a
@@ -273,7 +272,6 @@ export async function refreshSignerUrl(input: { agreementId: string; role: Signe
 
   const invitation = await guardedCall({
     provider: provider.name,
-    family: "esign",
     operation: "esign.refresh_url",
     ownerId: agreement.ownerId,
     cooldownSeconds: 0,
@@ -450,7 +448,6 @@ export async function storeSignedDocument(input: { agreementId: string }) {
 
   const buffer = await guardedCall({
     provider: provider.name,
-    family: "esign",
     operation: "esign.download",
     ownerId: agreement.ownerId,
     cooldownSeconds: 0,

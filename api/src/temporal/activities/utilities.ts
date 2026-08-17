@@ -196,7 +196,6 @@ export async function fetchBillForAccount(input: { accountId: string }) {
   try {
     const bill = await guardedCall({
       provider: provider.name,
-      family: "bbps",
       operation: "bbps.fetch",
       subjectFingerprint: subject,
       ownerId: account.ownerId,

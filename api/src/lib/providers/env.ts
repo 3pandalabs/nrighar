@@ -68,7 +68,15 @@ export const providerEnv = {
   // caches, cooldowns and schedules below are what keep normal usage far
   // beneath them.
   identityMonthlyCap: num("IDENTITY_KYC_MONTHLY_CAP", 500),
+  // New agreements sent for signature per month. Only esign.create draws on
+  // this, so the number means what an operator would assume it means.
   esignMonthlyCap: num("ESIGN_MONTHLY_CAP", 200),
+  // Reads against a document already paid for: re-issuing a signing link (a
+  // signer reopening the page) and downloading the signed PDF. Kept separate
+  // and generous — at most vendors these are free or near-free, and the cap
+  // here exists only to stop a loop, not to budget. It must never be able to
+  // block esign.create, which is the call that actually costs.
+  esignLinkMonthlyCap: num("ESIGN_LINK_MONTHLY_CAP", 2000),
   bbpsMonthlyCap: num("BBPS_MONTHLY_CAP", 1000),
 
   // --- Cache freshness --------------------------------------------------
