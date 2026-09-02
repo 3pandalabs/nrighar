@@ -9,13 +9,6 @@ export const metadata: Metadata = {
   description: "Get in touch with the RentVault team.",
 };
 
-// ⚠️ PLACEHOLDER — replace before this page goes live.
-// A support phone line was asked for but no number was given, and inventing a
-// plausible-looking one is worse than an obvious blank: it would ship a page
-// telling NRI landlords to call a number that isn't ours.
-const SUPPORT_PHONE_DISPLAY = "+91 00000 00000";
-const SUPPORT_PHONE_E164 = "+910000000000";
-
 // The dedicated support mailbox this file has been asking for. It is a
 // Cloudflare Email Routing alias forwarding to the org inbox — free, and
 // revocable without touching the destination if it ever attracts spam.
@@ -59,21 +52,6 @@ const MailIcon = () => (
   </svg>
 );
 
-const PhoneIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.75"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    className="size-8"
-  >
-    <path d="M6.5 3h3l1.5 4.5-2 1.5a12 12 0 0 0 6 6l1.5-2 4.5 1.5v3a2 2 0 0 1-2.2 2A17 17 0 0 1 4.5 5.2 2 2 0 0 1 6.5 3Z" />
-  </svg>
-);
-
 export default function ContactPage() {
   return (
     <div className="relative">
@@ -96,11 +74,11 @@ export default function ContactPage() {
 
       <main className="mx-auto w-full max-w-3xl px-6 pb-24">
         <h1 className="text-4xl font-semibold tracking-tight text-zinc-900 sm:text-5xl dark:text-zinc-50">
-          Speak to us now
+          Get in touch
         </h1>
         <p className="mt-4 max-w-xl text-base leading-relaxed text-zinc-600 dark:text-zinc-400">
           Managing a property from another country is hard enough. Whether you&apos;re an owner listing a home or a
-          tenant applying for one, there&apos;s a person on the other end of all three of these.
+          tenant applying for one, there&apos;s a person on the other end of both of these.
         </p>
 
         <div className="mt-10 flex flex-col gap-4">
@@ -117,32 +95,10 @@ export default function ContactPage() {
             <span className="flex-1">
               <span className="block text-lg font-semibold text-zinc-900 dark:text-zinc-50">Email us</span>
               <span className="mt-1 block text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                The best way to reach us for anything that isn&apos;t urgent — questions about a listing, a payment, or
-                your account. We reply within one business day.
+                The best way to reach us — questions about a listing, a payment, or your
+                account. We reply within one business day.
               </span>
               <span className="mt-2 block text-sm font-medium text-zinc-900 dark:text-zinc-50">{SUPPORT_EMAIL}</span>
-            </span>
-            <span className="text-zinc-400 dark:text-zinc-500">
-              <ArrowIcon />
-            </span>
-          </a>
-
-          <a
-            href={`tel:${SUPPORT_PHONE_E164}`}
-            className="group flex items-start gap-5 rounded-2xl border border-zinc-200 bg-white p-6 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600"
-          >
-            <span className="text-zinc-900 dark:text-zinc-50">
-              <PhoneIcon />
-            </span>
-            <span className="flex-1">
-              <span className="block text-lg font-semibold text-zinc-900 dark:text-zinc-50">Call us</span>
-              <span className="mt-1 block text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                For anything time-sensitive — a tenant moving in, a payment that hasn&apos;t landed, a document you need
-                today.
-              </span>
-              <span className="mt-2 block text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                {SUPPORT_PHONE_DISPLAY}
-              </span>
             </span>
             <span className="text-zinc-400 dark:text-zinc-500">
               <ArrowIcon />
