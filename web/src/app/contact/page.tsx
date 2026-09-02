@@ -16,10 +16,17 @@ export const metadata: Metadata = {
 const SUPPORT_PHONE_DISPLAY = "+91 00000 00000";
 const SUPPORT_PHONE_E164 = "+910000000000";
 
-// The org address. Swap for a dedicated support@ mailbox when one exists —
-// this one also owns the infrastructure accounts, so publishing it invites
-// spam at the address you least want it.
-const SUPPORT_EMAIL = "3pandalabs@gmail.com";
+// The dedicated support mailbox this file has been asking for. It is a
+// Cloudflare Email Routing alias forwarding to the org inbox — free, and
+// revocable without touching the destination if it ever attracts spam.
+//
+// Deliberately NOT 3pandas@3pandalabs.com, which is now the address business
+// correspondence is SENT from (vendor onboarding, KYB). Publishing a sending
+// identity on a page crawlers read is how it lands on scrape lists, and a
+// spam-scored sending address is precisely what you cannot afford when the
+// counterparty runs the mail filter. Same reasoning that retired the gmail
+// address here — it just applies to a different address now.
+const SUPPORT_EMAIL = "support@3pandalabs.com";
 
 const ArrowIcon = () => (
   <svg

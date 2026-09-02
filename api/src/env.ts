@@ -33,6 +33,12 @@ export const env = {
   // an attacker-controlled Host header would otherwise rewrite the reset link
   // in an email we send to the real account owner.
   WEB_ORIGIN: process.env.WEB_ORIGIN ?? "https://nrighar.3pandalabs.com",
-  // Destination for Contact-page messages. Falls back to the org address.
-  SUPPORT_EMAIL: process.env.SUPPORT_EMAIL ?? "3pandalabs@gmail.com",
+  // Destination for Contact-page messages. Must match the address published in
+  // web/src/app/contact/page.tsx — someone mailing the address on the page and
+  // someone using the form should reach the same inbox, or one of the two
+  // quietly goes somewhere nobody watches.
+  //
+  // NOTE: SUPPORT_EMAIL set in Coolify overrides this default, so editing the
+  // line below is not sufficient on its own.
+  SUPPORT_EMAIL: process.env.SUPPORT_EMAIL ?? "support@3pandalabs.com",
 };
