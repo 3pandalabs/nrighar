@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api/client";
-import type { Tenant, TenantDocument, TenantProfile } from "@/lib/types";
+import type { IdentityVerification, Tenant, TenantDocument, TenantProfile } from "@/lib/types";
+import { VerificationRow } from "@/components/VerificationStatus";
 import { getDownloadUrl } from "../../actions";
+import { PanVerifyForm } from "./pan-verify-form";
 
 const DOC_TYPE_LABELS: Record<TenantDocument["docType"], string> = {
   agreement: "Rent agreement",
@@ -43,6 +45,13 @@ export default async function TenantDetailPage({
     (sharedDocs ?? []).map(async (doc) => ({ doc, signedUrl: await getDownloadUrl(doc.storagePath) }))
   );
 
+  // Government-source ID checks on this tenant record. Separate from the
+  // kycStatus flag above, which is the coarse summary — this is the evidence
+  // behind it.
+  const verifications = (await apiFetch(`/tenants/${id}/identity-verifications`).catch(
+    () => []
+  )) as IdentityVerification[];
+
   return (
     <div className="flex max-w-2xl flex-col gap-8">
       <div>
@@ -66,6 +75,30 @@ export default async function TenantDetailPage({
           {[tenant.phone, tenant.email].filter(Boolean).join(" · ")}
         </p>
       </div>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+        <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          Identity verification
+        </h2>
+
+        {verifications.length > 0 && (
+          <ul className="mb-6 divide-y divide-zinc-200 rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+            {verifications.map((verification) => (
+              <VerificationRow key={verification.id} verification={verification} />
+            ))}
+          </ul>
+        )}
+
+        <PanVerifyForm tenantId={tenant.id} tenantName={tenant.fullName} />
+
+        {/* An Aadhaar OTP goes to the tenant's own phone, so there is no
+            landlord-driven version of it — saying so here stops the obvious
+            "where's the Aadhaar button?" question. */}
+        <p className="mt-4 border-t border-zinc-200 pt-4 text-xs text-zinc-500 dark:border-zinc-800">
+          Aadhaar verification needs an OTP sent to your tenant&apos;s own mobile, so they run it
+          themselves from their renter profile. Once they do, the result appears here.
+        </p>
+      </section>
 
       {tenant.tenantUserId ? (
         sharedProfile ? (

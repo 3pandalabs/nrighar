@@ -498,6 +498,348 @@ export const kycVerifications = pgTable(
   ],
 );
 
+// ---------------------------------------------------------------------------
+// Number-based identity KYC (PAN / Aadhaar OTP) via a licensed aggregator.
+//
+// Distinct from kyc_verifications above, which is the *document* pipeline: a
+// scan lands in R2, a vision model reads it, and nothing external is called.
+// This table records a check against a government source keyed by a number the
+// person typed, which costs real money per call — so the row doubles as the
+// cache. A 'verified' row inside its freshness window is returned instead of
+// re-calling the provider (see lib/identity/cache.ts).
+//
+// The full number is NEVER stored. numberMasked keeps only what's needed to
+// show the user which document was verified (ABCDE****F / XXXX-XXXX-1234);
+// numberFingerprint is an HMAC of the normalized number under a server-side
+// secret, which is what the cache lookup matches on. A DB leak therefore
+// yields neither a usable PAN/Aadhaar number nor an offline-guessable hash
+// (the Aadhaar keyspace is small enough that a plain SHA-256 would be
+// reversible in minutes).
+// ---------------------------------------------------------------------------
+export const identityVerifications = pgTable(
+  "identity_verifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: text("kind").notNull(),
+    // Exactly one of these two is set — the owner-side tenant record (tenant
+    // has no login) or the tenant's own user account. Same dual-subject shape
+    // as kyc_verifications, for the same reason.
+    tenantId: uuid("tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
+    tenantUserId: uuid("tenant_user_id").references(() => users.id, { onDelete: "cascade" }),
+    // Who paid for the call / who is allowed to read the result. Null for a
+    // tenant-user verifying themselves before any landlord is involved.
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    numberMasked: text("number_masked").notNull(),
+    numberFingerprint: text("number_fingerprint").notNull(),
+    status: text("status").notNull().default("pending"),
+    provider: text("provider"),
+    providerRef: text("provider_ref"),
+    // Name the provider returned vs. the name we expected from our own
+    // records, plus the 0..1 similarity between them. Kept even on a match so
+    // an auditor can see what was compared, not just the verdict.
+    verifiedName: text("verified_name"),
+    expectedName: text("expected_name"),
+    nameMatchScore: numeric("name_match_score", { precision: 4, scale: 3 }),
+    // Provider payload with anything sensitive already stripped (no photo, no
+    // full number, no raw XML) — see lib/identity/*.ts sanitize helpers.
+    details: jsonb("details"),
+    errorMessage: text("error_message"),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_identity_verifications_tenant").on(t.tenantId),
+    index("idx_identity_verifications_tenant_user").on(t.tenantUserId),
+    index("idx_identity_verifications_owner").on(t.ownerId),
+    // The cache probe: "is there a fresh verified result for this number and
+    // this kind?". Ordered kind-first because every lookup pins both.
+    index("idx_identity_verifications_cache").on(t.kind, t.numberFingerprint, t.status, t.verifiedAt),
+    check("identity_verifications_kind_check", sql`${t.kind} in ('pan','aadhaar')`),
+    check(
+      "identity_verifications_status_check",
+      sql`${t.status} in ('pending','verified','name_mismatch','not_found','failed','not_configured')`,
+    ),
+    check(
+      "identity_verifications_subject_check",
+      sql`(${t.tenantId} is not null) <> (${t.tenantUserId} is not null)`,
+    ),
+  ],
+);
+
+// A single Aadhaar OTP round-trip. Exists as its own table, rather than a few
+// columns on identity_verifications, because it is the thing duplicate-request
+// suppression keys on: one live session per (subject, number) at a time, so a
+// user hammering "send OTP" re-reads this row instead of buying another SMS.
+// The provider's client/transaction id is the only handle to the paid session,
+// and the OTP itself is never stored — it goes straight back out to the
+// provider on submit.
+export const aadhaarOtpSessions = pgTable(
+  "aadhaar_otp_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
+    tenantUserId: uuid("tenant_user_id").references(() => users.id, { onDelete: "cascade" }),
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    numberMasked: text("number_masked").notNull(),
+    numberFingerprint: text("number_fingerprint").notNull(),
+    provider: text("provider").notNull(),
+    providerClientId: text("provider_client_id").notNull(),
+    status: text("status").notNull().default("otp_sent"),
+    // Submit attempts against this session. Capped in code (MAX_OTP_ATTEMPTS)
+    // so a wrong-OTP loop can't bill a submit call per guess.
+    attempts: integer("attempts").notNull().default(0),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_aadhaar_otp_tenant").on(t.tenantId),
+    index("idx_aadhaar_otp_tenant_user").on(t.tenantUserId),
+    index("idx_aadhaar_otp_live").on(t.numberFingerprint, t.status, t.expiresAt),
+    check("aadhaar_otp_status_check", sql`${t.status} in ('otp_sent','consumed','expired','failed')`),
+    check("aadhaar_otp_subject_check", sql`(${t.tenantId} is not null) <> (${t.tenantUserId} is not null)`),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// e-Sign lease agreements
+// ---------------------------------------------------------------------------
+
+// One agreement per lease at a time (partial unique index below, same shape as
+// the one-active-lease and one-open-listing rules). Both PDFs live in the
+// existing private nrighar-documents R2 bucket under the owner's user-id
+// prefix, so every existing storage authz check applies unchanged.
+//
+// contentHash is the SHA-256 of the unsigned PDF bytes. It is what makes the
+// "tamper-proof" claim checkable rather than decorative: the signed PDF the
+// provider returns embeds the document we sent, and we keep the hash of what
+// we sent.
+export const leaseAgreements = pgTable(
+  "lease_agreements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leaseId: uuid("lease_id")
+      .notNull()
+      .references(() => leases.id, { onDelete: "cascade" }),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("draft"),
+    provider: text("provider"),
+    providerRef: text("provider_ref"),
+    unsignedStoragePath: text("unsigned_storage_path").notNull(),
+    signedStoragePath: text("signed_storage_path"),
+    contentHash: text("content_hash").notNull(),
+    // Frozen copy of the lease/property/party values the PDF was rendered
+    // from. The lease row can be edited afterwards; a signed agreement must
+    // keep saying what was actually signed.
+    terms: jsonb("terms").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_lease_agreements_owner").on(t.ownerId),
+    index("idx_lease_agreements_lease").on(t.leaseId),
+    uniqueIndex("uq_lease_agreements_live_per_lease")
+      .on(t.leaseId)
+      .where(sql`${t.status} in ('draft','sent','partially_signed')`),
+    // providerRef is how the webhook finds the row, so it must be unique
+    // where set.
+    uniqueIndex("uq_lease_agreements_provider_ref")
+      .on(t.provider, t.providerRef)
+      .where(sql`${t.providerRef} is not null`),
+    check(
+      "lease_agreements_status_check",
+      sql`${t.status} in ('draft','sent','partially_signed','completed','declined','expired','failed')`,
+    ),
+  ],
+);
+
+// Sequential signers: landlord (order 1) signs first, and only once that
+// lands does the tenant (order 2) get notified. signOrder is stored rather
+// than derived from role so the order can change without a data migration.
+export const leaseAgreementSigners = pgTable(
+  "lease_agreement_signers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    agreementId: uuid("agreement_id")
+      .notNull()
+      .references(() => leaseAgreements.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    signOrder: integer("sign_order").notNull(),
+    fullName: text("full_name").notNull(),
+    email: text("email"),
+    phone: text("phone"),
+    status: text("status").notNull().default("pending"),
+    // Provider-hosted signing page. Short-lived at most providers, so it is
+    // refreshed on demand rather than treated as a durable link.
+    signUrl: text("sign_url"),
+    signUrlExpiresAt: timestamp("sign_url_expires_at", { withTimezone: true }),
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
+    signedAt: timestamp("signed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_lease_agreement_signers_agreement").on(t.agreementId, t.signOrder),
+    unique("uq_lease_agreement_signers_role").on(t.agreementId, t.role),
+    check("lease_agreement_signers_role_check", sql`${t.role} in ('landlord','tenant')`),
+    check(
+      "lease_agreement_signers_status_check",
+      sql`${t.status} in ('pending','notified','signed','declined')`,
+    ),
+  ],
+);
+
+// Webhook idempotency ledger. Providers retry until they get a 2xx, and some
+// fan the same event out more than once — without this, a redelivered
+// "completed" event re-downloads the signed PDF and re-emails everyone.
+// The unique constraint IS the dedupe: insert first, and treat a unique
+// violation as "already handled, ack it".
+export const esignWebhookEvents = pgTable(
+  "esign_webhook_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    provider: text("provider").notNull(),
+    eventId: text("event_id").notNull(),
+    eventType: text("event_type"),
+    agreementId: uuid("agreement_id").references(() => leaseAgreements.id, { onDelete: "set null" }),
+    payload: jsonb("payload"),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("uq_esign_webhook_events_provider_event").on(t.provider, t.eventId),
+    index("idx_esign_webhook_events_agreement").on(t.agreementId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// BBPS utility bill tracking
+// ---------------------------------------------------------------------------
+
+// A registered biller account on a property (electricity connection, water
+// connection, …). nextFetchAfter is the cost control: the scheduled worker
+// only ever considers accounts whose gate has passed, so the polling budget is
+// a property of the data rather than of how often the cron happens to run.
+export const utilityAccounts = pgTable(
+  "utility_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    category: text("category").notNull(),
+    billerId: text("biller_id").notNull(),
+    billerName: text("biller_name"),
+    consumerNumber: text("consumer_number").notNull(),
+    nickname: text("nickname"),
+    active: boolean("active").notNull().default(true),
+    lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
+    // Set forward by every fetch. The monthly run sets it to the 1st of next
+    // month; a due-date confirmation sets it past the due date. Nothing polls
+    // an account before this instant.
+    nextFetchAfter: timestamp("next_fetch_after", { withTimezone: true }),
+    consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+    lastErrorMessage: text("last_error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_utility_accounts_owner").on(t.ownerId),
+    index("idx_utility_accounts_property").on(t.propertyId),
+    // The scheduler's only scan: due accounts, cheapest-first.
+    index("idx_utility_accounts_due").on(t.active, t.nextFetchAfter),
+    unique("uq_utility_accounts_biller_consumer").on(t.propertyId, t.billerId, t.consumerNumber),
+    check(
+      "utility_accounts_category_check",
+      sql`${t.category} in ('electricity','water','gas','broadband','dth','mobile','maintenance','other')`,
+    ),
+  ],
+);
+
+// One row per (account, billing period). billPeriodKey is the idempotency key
+// for bill fetches: the provider's bill number when it gives one, else a
+// derived YYYY-MM. Re-fetching the same bill updates the row in place instead
+// of accumulating duplicates, which is what lets the due-date confirmation
+// call be a plain upsert.
+export const utilityBills = pgTable(
+  "utility_bills",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => utilityAccounts.id, { onDelete: "cascade" }),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    billPeriodKey: text("bill_period_key").notNull(),
+    billNumber: text("bill_number"),
+    billDate: date("bill_date"),
+    dueDate: date("due_date"),
+    amountDue: numeric("amount_due", { precision: 12, scale: 2 }).notNull(),
+    status: text("status").notNull().default("UNPAID"),
+    provider: text("provider"),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+    // Overdue alerting state. lastAlertedAt + alertCount implement the backoff
+    // that keeps a long-unpaid bill from mailing the landlord every single day.
+    lastAlertedAt: timestamp("last_alerted_at", { withTimezone: true }),
+    alertCount: integer("alert_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_utility_bills_owner").on(t.ownerId),
+    index("idx_utility_bills_account").on(t.accountId, t.dueDate),
+    // Drives the daily alert sweep, which reads only from this index and
+    // makes no provider calls at all.
+    index("idx_utility_bills_overdue").on(t.status, t.dueDate),
+    unique("uq_utility_bills_account_period").on(t.accountId, t.billPeriodKey),
+    check("utility_bills_status_check", sql`${t.status} in ('PAID','UNPAID','UNKNOWN')`),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Cost control
+// ---------------------------------------------------------------------------
+
+// Append-only ledger of every billable outbound call to a paid provider. It
+// backs three things that would otherwise need Redis (which this stack does
+// not run): the monthly spend ceiling, the per-subject cooldown that stops a
+// retry loop from buying the same lookup twice, and the after-the-fact answer
+// to "what did we actually spend last month".
+//
+// subjectFingerprint is the same HMAC construction used elsewhere — never a
+// raw PAN/Aadhaar/consumer number.
+export const providerCalls = pgTable(
+  "provider_calls",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    provider: text("provider").notNull(),
+    operation: text("operation").notNull(),
+    subjectFingerprint: text("subject_fingerprint"),
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    // Whether the call is expected to appear on the provider invoice. A
+    // connection error that never reached them is logged with billable=false
+    // so a network blip doesn't eat the month's budget.
+    billable: boolean("billable").notNull().default(true),
+    outcome: text("outcome").notNull(),
+    httpStatus: integer("http_status"),
+    durationMs: integer("duration_ms"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Both reads are "recent calls for X" — always a range scan on createdAt
+    // with the leading columns pinned.
+    index("idx_provider_calls_quota").on(t.provider, t.operation, t.billable, t.createdAt),
+    index("idx_provider_calls_subject").on(t.subjectFingerprint, t.operation, t.createdAt),
+    index("idx_provider_calls_owner").on(t.ownerId, t.createdAt),
+    check("provider_calls_outcome_check", sql`${t.outcome} in ('ok','error','timeout','blocked')`),
+  ],
+);
+
 // id doubles as the unguessable share token handed out in share links.
 export const profileShares = pgTable(
   "profile_shares",

@@ -22,6 +22,10 @@ import { storageRoutes } from "./routes/storage.js";
 import { tenantIntakeRoutes } from "./routes/tenantIntake.js";
 import { listingRoutes } from "./routes/listings.js";
 import { applicationRoutes } from "./routes/applications.js";
+import { identityRoutes } from "./routes/identity.js";
+import { leaseAgreementRoutes } from "./routes/leaseAgreements.js";
+import { esignWebhookRoutes } from "./routes/esignWebhook.js";
+import { utilityRoutes } from "./routes/utilities.js";
 import { metricsRoutes } from "./routes/metrics.js";
 import { recordRequest, startCpuSampler } from "./metrics/collector.js";
 
@@ -78,6 +82,13 @@ await app.register(tenantIntakeRoutes);
 await app.register(listingRoutes);
 await app.register(applicationRoutes);
 await app.register(contactRoutes);
+await app.register(identityRoutes);
+await app.register(leaseAgreementRoutes);
+await app.register(utilityRoutes);
+// Registered as its own plugin because it installs a buffer-mode JSON parser
+// in its own encapsulated scope — the raw bytes are needed for HMAC
+// verification, and that parser must not leak into any other route.
+await app.register(esignWebhookRoutes);
 await app.register(metricsRoutes);
 
 app.listen({ port: env.PORT, host: "0.0.0.0" }).catch((err) => {

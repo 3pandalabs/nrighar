@@ -4,6 +4,8 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { apiFetch, apiGetCurrentUser, apiLogout } from "@/lib/api/client";
+import { describeApiError, type ActionResult } from "@/lib/apiErrors";
+import type { AadhaarOtpStart, IdentityVerification } from "@/lib/types";
 
 async function requireUser() {
   const user = await apiGetCurrentUser();
@@ -121,4 +123,64 @@ export async function sendApplicationMessage(formData: FormData) {
   await apiFetch(`/applications/${applicationId}/messages`, { method: "POST", body: JSON.stringify({ body }) });
 
   revalidatePath("/tenant/listings");
+}
+
+// --- Identity verification (PAN / Aadhaar OTP) ------------------------------
+//
+// These return an ActionResult instead of throwing, unlike the actions above.
+// The reason is the failure modes: a wrong OTP or a mistyped PAN is the user's
+// to fix and needs inline copy next to the field, while an exhausted monthly
+// quota is ours and must NOT invite a retry. Throwing into the error boundary
+// would flatten both into one page-level "something went wrong".
+//
+// The raw number goes browser -> Server Action -> API over HTTPS and is never
+// persisted anywhere in `web/`. The API masks it before it is stored, so
+// nothing that comes back contains it.
+
+export async function verifyOwnPan(panNumber: string): Promise<ActionResult<IdentityVerification>> {
+  await requireUser();
+  try {
+    const result = (await apiFetch("/identity/pan", {
+      method: "POST",
+      body: JSON.stringify({ panNumber }),
+    })) as IdentityVerification;
+    revalidatePath("/tenant/verify");
+    revalidatePath("/tenant");
+    return { ok: true, data: result };
+  } catch (err) {
+    return { ok: false, error: describeApiError(err) };
+  }
+}
+
+export async function startAadhaarVerification(
+  aadhaarNumber: string
+): Promise<ActionResult<AadhaarOtpStart>> {
+  await requireUser();
+  try {
+    const result = (await apiFetch("/identity/aadhaar/otp", {
+      method: "POST",
+      body: JSON.stringify({ aadhaarNumber }),
+    })) as AadhaarOtpStart;
+    return { ok: true, data: result };
+  } catch (err) {
+    return { ok: false, error: describeApiError(err) };
+  }
+}
+
+export async function submitAadhaarOtp(
+  sessionId: string,
+  otp: string
+): Promise<ActionResult<IdentityVerification>> {
+  await requireUser();
+  try {
+    const result = (await apiFetch("/identity/aadhaar/verify", {
+      method: "POST",
+      body: JSON.stringify({ sessionId, otp }),
+    })) as IdentityVerification;
+    revalidatePath("/tenant/verify");
+    revalidatePath("/tenant");
+    return { ok: true, data: result };
+  } catch (err) {
+    return { ok: false, error: describeApiError(err) };
+  }
 }
