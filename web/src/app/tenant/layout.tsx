@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { apiGetCurrentUser } from "@/lib/api/client";
 import { WordmarkName, WordmarkTag } from "@/components/Wordmark";
 import { tenantSignOut } from "./actions";
+
+export const metadata: Metadata = { title: "Tenant portal" };
 
 const NAV_ITEMS = [
   { href: "/tenant", label: "My profile" },
