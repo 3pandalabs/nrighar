@@ -5,7 +5,7 @@ import { WordmarkName, WordmarkTag } from "@/components/Wordmark";
 import { ContactForm } from "./contact-form";
 
 export const metadata: Metadata = {
-  title: "Contact us — RentVault",
+  title: "Contact us",
   description: "Get in touch with the RentVault team.",
 };
 

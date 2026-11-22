@@ -13,10 +13,35 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const description =
+  "Manage your rental property in India from anywhere — tenants, rent, and documents in one place, built for NRIs.";
+const homeTitle = "RentVault — Manage your rental property in India from anywhere | by 3PandaLabs";
+
+// Brand consistency rules (brand repo, brand.md, DECIDED 2026-11-22): home
+// title "<App> — <line> | by 3PandaLabs", other pages "<Page> — <App>" (the
+// template below — child pages set only their page name), and share tags
+// with a 1200x630 /og.png on every public page.
 export const metadata: Metadata = {
-  title: "RentVault",
-  description:
-    "Manage your rental property in India from anywhere — tenants, rent, and documents in one place, built for NRIs.",
+  metadataBase: new URL("https://nrighar.3pandalabs.com"),
+  title: {
+    default: homeTitle,
+    template: "%s — RentVault",
+  },
+  description,
+  openGraph: {
+    title: homeTitle,
+    description,
+    siteName: "RentVault by 3PandaLabs",
+    type: "website",
+    url: "/",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "RentVault by 3PandaLabs" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: homeTitle,
+    description,
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({
@@ -40,6 +65,9 @@ export default function RootLayout({
               </Link>
               <span>All rights reserved.</span>
             </span>
+            <p className="m-0 mt-1 basis-full text-xs text-zinc-500 dark:text-zinc-400">
+              Built by pandas. Loved by people.
+            </p>
           </div>
         </footer>
       </body>
