@@ -60,6 +60,12 @@ export default function RootLayout({
           <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-2 text-sm text-zinc-500 dark:text-zinc-400">
             <span>&copy; 3PandaLabs LLC, USA.</span>
             <span className="flex items-center gap-4">
+              <Link href="/privacy" className="hover:text-zinc-900 dark:hover:text-zinc-50">
+                Privacy
+              </Link>
+              <Link href="/terms" className="hover:text-zinc-900 dark:hover:text-zinc-50">
+                Terms
+              </Link>
               <Link href="/contact" className="hover:text-zinc-900 dark:hover:text-zinc-50">
                 Contact us
               </Link>
