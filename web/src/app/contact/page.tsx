@@ -106,6 +106,13 @@ export default function ContactPage() {
           </a>
         </div>
 
+        <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+          Prefer to call?{" "}
+          <a href="tel:+13323168453" className="font-medium text-zinc-900 hover:underline dark:text-zinc-50">
+            +1 (332) 316-8453
+          </a>
+        </p>
+
         <div className="mt-4">
           <ContactForm />
         </div>
