@@ -6,6 +6,7 @@ import { hashPassword, verifyPassword } from "../../auth/password.js";
 import { generateRefreshSecret, parseRefreshToken, REFRESH_TOKEN_TTL_MS, signAccessToken } from "../../auth/jwt.js";
 import { sendMail } from "../../lib/mailer.js";
 import { buildPasswordResetEmail } from "../../lib/emails/passwordReset.js";
+import { notifyNewUser } from "../../lib/newUserAlert.js";
 
 async function issueSession(userId: string, role: "owner" | "tenant") {
   const accessToken = signAccessToken({ sub: userId, role });
@@ -65,6 +66,10 @@ export async function signupActivity(input: { email: string; password: string; r
   } finally {
     client.release();
   }
+
+  // After COMMIT, so only a real new row alerts; fire-and-forget, so a mailer
+  // problem can't fail the signup or trigger a Temporal retry. See lib/newUserAlert.ts.
+  notifyNewUser({ email: input.email, userId, role: input.role }, (msg) => console.log(`newUserAlert[${userId}]: ${msg}`));
 
   const session = await issueSession(userId, input.role);
   return { ...session, user: { id: userId, email: input.email, role: input.role } };
