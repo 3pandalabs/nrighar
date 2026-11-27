@@ -1,0 +1,177 @@
+/* Home page only (imported by app/page.tsx). Everything is prefixed `rt-` so
+   none of it can leak into the dashboard, tenant space or pay pages.
+   Motion is decoration: every animation is switched off under
+   prefers-reduced-motion at the bottom of this file. */
+
+.rt-display {
+  font-family: var(--font-rt-display), Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+/* Emerald-to-gold shimmer for the accent words (the two brand colours). */
+.rt-shimmer {
+  background: linear-gradient(100deg, #059669 0%, #b98d4f 40%, #10b981 70%, #059669 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: rt-shimmer 7s ease-in-out infinite;
+  padding-right: 0.06em;
+}
+@keyframes rt-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ---------- Hero: the flight path from abroad to home ---------- */
+.rt-route path.rt-route-line {
+  stroke-dasharray: 4 7;
+  animation: rt-route 1.6s linear infinite;
+}
+@keyframes rt-route { to { stroke-dashoffset: -22; } }
+.rt-plane {
+  offset-path: path("M 20 60 C 120 -10, 260 -10, 360 52");
+  offset-rotate: auto;
+  animation: rt-fly 6s ease-in-out infinite;
+}
+@keyframes rt-fly {
+  0% { offset-distance: 0%; opacity: 0; }
+  8% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+/* ---------- Hero ledger card ---------- */
+.rt-float { animation: rt-float 8s ease-in-out infinite; }
+@keyframes rt-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-10px) rotate(0.4deg); }
+}
+
+/* Each row's status cycles Sent -> Opened -> Paid. The three labels are
+   stacked; each is visible for one third of the cycle. Rows are offset by
+   --row so they don't all flip at once. */
+.rt-state {
+  opacity: 0;
+  animation: rt-state 9s linear infinite;
+  animation-delay: calc(var(--slot, 0) * 3s - var(--row, 0s));
+}
+@keyframes rt-state {
+  0% { opacity: 0; transform: translateY(4px); }
+  3% { opacity: 1; transform: translateY(0); }
+  31% { opacity: 1; transform: translateY(0); }
+  34%, 100% { opacity: 0; transform: translateY(-4px); }
+}
+
+/* Home-currency amounts take turns: USD, GBP, AED. */
+.rt-cur {
+  opacity: 0;
+  animation: rt-state 12s linear infinite;
+  animation-delay: calc(var(--slot, 0) * 4s);
+}
+
+/* Ledger bars fill in. */
+.rt-bar { transform-origin: left; animation: rt-grow 1.8s .6s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes rt-grow { from { transform: scaleX(0); } }
+
+/* WhatsApp-style reminder bubble and the follow-up toasts. */
+.rt-bubble { animation: rt-bubble 9s ease-in-out infinite; }
+@keyframes rt-bubble {
+  0%, 4% { opacity: 0; transform: translateY(14px) scale(.96); }
+  10%, 86% { opacity: 1; transform: translateY(0) scale(1); }
+  94%, 100% { opacity: 0; transform: translateY(-6px) scale(.98); }
+}
+.rt-toast {
+  opacity: 0;
+  animation: rt-toast 9s ease-in-out infinite;
+  animation-delay: var(--t, 0s);
+}
+@keyframes rt-toast {
+  0% { opacity: 0; transform: translateX(22px) scale(.96); }
+  5%, 30% { opacity: 1; transform: translateX(0) scale(1); }
+  36%, 100% { opacity: 0; transform: translateX(-10px) scale(.98); }
+}
+.rt-chip { animation: rt-chip 7s ease-in-out infinite; }
+.rt-chip-2 { animation-delay: -3.5s; }
+@keyframes rt-chip {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(1.5deg); }
+}
+
+/* Paid dot pulse. */
+.rt-ping { position: relative; }
+.rt-ping::after {
+  content: ""; position: absolute; inset: -3px; border-radius: 999px;
+  border: 2px solid #10b981; opacity: 0;
+  animation: rt-ring 2.4s ease-out infinite;
+}
+@keyframes rt-ring {
+  0% { transform: scale(.8); opacity: .8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* ---------- Marquee ---------- */
+.rt-marquee { mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.rt-marquee-track { display: flex; width: max-content; animation: rt-marquee 40s linear infinite; }
+.rt-marquee:hover .rt-marquee-track { animation-play-state: paused; }
+@keyframes rt-marquee { to { transform: translateX(-50%); } }
+
+/* ---------- How it works connector ---------- */
+.rt-dash {
+  background-image: linear-gradient(90deg, #a7f3d0 50%, transparent 50%);
+  background-size: 14px 2px;
+  animation: rt-dash 1.2s linear infinite;
+}
+@keyframes rt-dash { to { background-position: 14px 0; } }
+
+/* ---------- Tiles ---------- */
+.rt-tile { transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s; }
+.rt-tile:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 30px 60px -30px rgba(6, 78, 59, .35);
+}
+
+/* Vault: documents slide into the safe. */
+.rt-doc { animation: rt-doc 6s ease-in-out infinite; animation-delay: var(--t, 0s); }
+@keyframes rt-doc {
+  0% { opacity: 0; transform: translateY(-18px); }
+  12%, 70% { opacity: 1; transform: translateY(0); }
+  85%, 100% { opacity: 0; transform: translateY(10px) scale(.96); }
+}
+
+/* Tenant share link: toggles between Shared and Revoked. */
+.rt-share { opacity: 0; animation: rt-share 8s linear infinite; animation-delay: var(--t, 0s); }
+@keyframes rt-share {
+  0% { opacity: 0; }
+  3%, 47% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* ---------- Final CTA ---------- */
+.rt-glow {
+  background:
+    radial-gradient(60% 80% at 15% 0%, rgba(16, 185, 129, .45), transparent 60%),
+    radial-gradient(60% 80% at 85% 100%, rgba(185, 141, 79, .45), transparent 60%),
+    #052e24;
+}
+.rt-btn-shine { position: relative; overflow: hidden; }
+.rt-btn-shine::before {
+  content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+  transform: skewX(-20deg);
+  animation: rt-shine 3.5s ease-in-out infinite;
+}
+@keyframes rt-shine { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rt-shimmer, .rt-route path.rt-route-line, .rt-float, .rt-bar, .rt-bubble, .rt-chip,
+  .rt-ping::after, .rt-marquee-track, .rt-dash, .rt-btn-shine::before, .rt-doc {
+    animation: none !important;
+  }
+  .rt-plane { display: none; }
+  /* One fixed frame instead of the cycles. */
+  .rt-state, .rt-cur, .rt-toast, .rt-share { animation: none !important; opacity: 0; }
+  .rt-state[data-first], .rt-cur[data-first], .rt-toast[data-first], .rt-share[data-first] { opacity: 1; }
+  .rt-doc { opacity: 1; }
+}
